@@ -1,10 +1,8 @@
 autoban
 
-The original version of autoban was developed at one of the internet's largest websites in order
-to block abuse and attacks that caused downtime. 
+The original version of autoban was developed at one of the internet's largest websites in order to block abuse and attacks that caused downtime. 
 
-Autoban works by analyzing logs stored in elasticsearch against filters and rules then generating ban or
-block entries.
+Autoban works by analyzing logs stored in elasticsearch against filters and rules then generating ban or block entries.
 
 
 
