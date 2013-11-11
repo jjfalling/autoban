@@ -17,3 +17,6 @@ Inputs			→ 	 Filters	→		Outputs
 [Varnish logs from ES?]		[Blacklist?]			[Hosts.deny?]
 				[Block Rules]			[Iptables?]
 								[Apache deny?]
+								
+								
+Original version developed with the assistance of kurtado (https://github.com/kurtado)
