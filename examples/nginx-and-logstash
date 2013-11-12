@@ -1,0 +1,29 @@
+Here is an example of how to configure nginx and logstash to get the required feilds for the nginx input. 
+
+
+nginx.conf:
+
+log_format main '$remote_addr $remote_port - $remote_user [$time_local] "$http_user_agent" $status "$request_method" "$server_protocol" "$host" "$request_uri" "$http_referer" $request_time $bytes_sent "$https" "$http_cookie"';
+
+
+
+logstash.conf:
+
+input{
+  file {
+      type => "nginxAccess"
+      path => "/var/log/nginx/access.log"
+      codec => 'plain'
+      sincedb_path => '/opt/logstash'
+      types => ["nginxAccess"]
+  }
+}
+  
+filter {
+  grok {
+    type => "nginxAccess"
+    pattern => '%{IPORHOST:remote_address} %{INT:remote_port} - %{USERNAME:remote_user} \[%{HTTPDATE:time_local}\] %{QS:http_user_agent} %{INT:status} %{QS:request_method} %{QS:server_protocol} %{QS:requested_hostname} %{QS:requested_uri} %{QS:http_referer} %{NUMBER:request_time} %{NUMBER:body_bytes_sent} %{QS:https} %{QS:cookies}'
+    add_field => [ "received_at", "%{@timestamp}" ]
+    #add_field => [ "received_from", "%{@source_host}" ]
+  }
+}
