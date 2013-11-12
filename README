@@ -9,12 +9,12 @@ Autoban works by analyzing logs stored in elasticsearch against filters and rule
 The current design is as follows (? denotes proposed and not yet created):
 
 
-Inputs            →             Filters           →          Outputs
-[Nginx logs from ES]            [Whitelist]                  [Nginx ban list]
-[Apache logs from ES]           [Allow Rules]                [PfSense ip blocks?]
-[Varnish logs from ES?]         [Blacklist?]                 [Hosts.deny?]
-                                [Block Rules]                [Iptables?]
-                                                             [Apache deny?]
+Inputs            →           Filters        →       Outputs
+[Nginx logs from ES]          [Whitelist]            [Nginx ban list]
+[Apache logs from ES]         [Allow Rules]          [PfSense ip blocks?]
+[Varnish logs from ES?]       [Blacklist?]           [Hosts.deny?]
+                              [Block Rules]          [Iptables?]   
+                                                     [Apache deny?]
 								
 								
 Original version developed with the assistance of kurtado (https://github.com/kurtado)
