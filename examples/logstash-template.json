@@ -1,0 +1,12 @@
+{
+    "logstash" : {
+    "template": "logstash-*",
+    "mappings": {
+        "_default_": {
+            "properties" : {
+                "remote_address" : { "type" : "string", "index" : "not_analyzed" },
+                "clientip" : { "type" : "string", "index" : "not_analyzed" }
+             }
+        }
+    }
+}
