@@ -1,0 +1,362 @@
+
+#you must use version 0.75+ of the es module!
+use Elasticsearch;
+#TODO: migtate to new es module w/o compat layer
+use Elasticsearch::Compat;
+
+use Geo::IP::PurePerl;
+use List::MoreUtils 'any';
+use warnings;
+
+my $facetedData;
+#you need to use the MaxMind GeoIP Organization Database. TODO: Migrate away from this?
+my $geoOrgDatabase="/var/lib/GeoIP/GeoIPOrg.dat";
+my $crawlers="microsoft|yandex|yahoo|google";
+my $result2;
+my $high = 5;
+my $low = 4;
+my $servers = $autobanConfig->param("nginx-es-input.elasticsearchServers");
+
+
+my $es = Elasticsearch::Compat->new(
+       servers => "$servers",
+       transport    => 'http',                  # default ’http’
+       max_requests => 10_000,                 # default 10_000
+       #trace_calls  => 'log_file',
+       ) || die "can't get new \$es\n";
+
+
+#$autobanConfig->param("autoban.mysqlHost");
+my $dt_period = 'now-15m';
+my $facetFeild = 'remote_address';
+my $type = 'nginxAccess';
+my $curlOutput;
+my $curlExitCode;
+
+sub nginx_es_input {
+
+
+	#define a HoH to shove all of our data in.
+	# the format will be ipData[#] => [ip] => [info about the ip] => [value for each key]
+	
+	my $result = $es->search(
+		facets  => {
+		ipFacet => {
+			terms => {
+			field => $facetFeild,
+			size => 50,
+			},
+			facet_filterb => { 
+			_type => $type,
+			"\@timestamp" => { 'gte' => $dt_period },
+			},
+		}
+		},
+		);
+
+
+
+	#my (@bad, $facet);
+	foreach my $res (@{$result->{'facets'}->{'ipFacet'}->{'terms'}}) {
+		next if $res->{'term'} eq '-';
+	#    print "$res->{'term'}: $res->{'count'}\n";
+		$facetedData->{'ip'}->{$res->{'term'}} = $res->{'count'};
+		my $ip = $res->{'term'};
+		$ip =~ s/\.(\d{1,3})$//;
+	#    print "subA: $ip\n";
+	}
+
+
+	#***REMOVE OR TURN INTO MAX REQUESTES FROM CACHE PURGE
+	#get the number of purges
+	our $num_purges = $facetedData->{'ip'}->{'192.168.15.6'};
+	#if shit hit the fan and the purges are no longer working, lets assume 20000 purges/15 min
+	#if ($num_purges == 0){print "Looks like purge bot not working, assuming 20000 purges/ every 15 min\n"; $num_purges = 20000;}
+    if ($num_purges == 0){print "Looks like purge bot not working, assuming 20000 purges/ every 15 min\n"; $num_purges = 10;}
+
+	#get some basic, non db killing info about ip address we got back. 
+	gatherBasicIpInfo();
+
+	#now, lets get the more... interesting data...
+	insepectPerIpData();
+
+	#look at ips, and add points against score
+	debugOutput("**DEBUG: Note: Not listing any crawlers below");
+	flagForBan();
+
+	#grab a new copy of the ban config on ops01 from the puppet repo
+	our @denyArray;
+	debugOutput("**DEBUG: Attempting to get current blockips.conf from the provided source");
+	$curlOutput = `curl -s -6 https://atuin.falling.se/nginx/blockips.conf -o /tmp/blockips.conf`;
+	$curlExitCode = $?;
+
+	#if we couldnt, give an error
+	if ( ($curlExitCode >> 8) != 0){
+		print "\n\nError: could not fetch nginx ban file, trying to work around this... curl exit code: ", $curlExitCode >> 8,"\n";
+	
+	}
+	else {
+		#read the denyfile into an array
+		debugOutput("**DEBUG: Was able to get blockips.conf. Reading the file into an array");
+		open (DENYFILE, "/tmp/blockips.conf") or print "Error: Can't open nginx blockfile: $!";
+		@denyArray = <DENYFILE>;
+		close DENYFILE;
+	}
+
+
+	#run banning process
+	my $banCount = 0;
+	runBanning();
+	
+	print Dumper($banData);
+
+	if ($banCount == 0) {debugOutput("**DEBUG: I found nothing to ban on this run");}
+	if (($opt_nodb) && $banCount > 0){print "\n\nPut the above nginx conf lines at the top of /opt/webroot/packages/centos/nginx/conf/sysban/blockips.conf on ops01\nThen run \"force-sysban-run.sh nodb\" on ops01 to push the file out\n\n";}
+
+
+	
+
+}
+
+
+
+sub flagForBan() {
+
+    #look through the list of ips, and 
+    foreach my $ip (sort keys %{$banData}) {
+	$banData->{$ip}->{'banComment'} = "";
+	$banData->{$ip}->{'banScore'} = 0;
+
+        #skip anything marked as a crawler
+        if ($banData->{$ip}->{'isCrawler'} eq "false" ) {
+
+            if ($banData->{$ip}->{'hasCookie'} ne "true" ) {$banData->{$ip}->{'banComment'} = "$banData->{$ip}->{'banComment'}" . "No cookie ,"; $banData->{$ip}->{'banScore'} = ($banData->{$ip}->{'banScore'} + $low)}
+            if ($banData->{$ip}->{'hasUserAgent'} ne "true" ) {$banData->{$ip}->{'banComment'} = "$banData->{$ip}->{'banComment'}" . "No useragent ,"; $banData->{$ip}->{'banScore'} = ($banData->{$ip}->{'banScore'} + $high)}
+            #if ($banData->{$ip}->{'isLoggedIn'} ne "true" ) {$banData->{$ip}->{'banComment'} = "$banData->{$ip}->{'banComment'}" . "Not logged in ,"; $banData->{$ip}->{'banScore'} = ($banData->{$ip}->{'banScore'} + $low)}
+            if ($banData->{$ip}->{'badResponsePercentage'} > 45 ) {$banData->{$ip}->{'banComment'} = "$banData->{$ip}->{'banComment'}" . "Bad to good response code ratio too high ,"; $banData->{$ip}->{'banScore'} = ($banData->{$ip}->{'banScore'} + $high)}
+            if ($banData->{$ip}->{'writeUrlPercentage'} > 60 ) {$banData->{$ip}->{'banComment'} = "$banData->{$ip}->{'banComment'}" . "Write to read ratio too high ,"; $banData->{$ip}->{'banScore'} = ($banData->{$ip}->{'banScore'} + $high)}
+            if ($banData->{$ip}->{'purgeHitPercentage'} > 50 ) {$banData->{$ip}->{'banComment'} = "$banData->{$ip}->{'banComment'}" . "Too many hits compared to purge bot ,"; $banData->{$ip}->{'banScore'} = ($banData->{$ip}->{'banScore'} + $low)}
+
+			$isp = isp_of_ip($ip) || '-';
+			$comment = substr(($banData->{$ip}->{'banComment'}),0,-1);
+			$comment = "AutoBan - Score: $banData->{$ip}->{'banScore'} Reason: " . "$comment";
+			debugOutput("**DEBUG: IP: $ip ISP: $isp COMMENT: $comment ");
+	
+        }
+
+    }
+
+}
+
+
+sub runBanning {
+
+    debugOutput("\n\n");
+
+    #TODO: put in config file
+    my $banTheshold = 8;
+    #look through the list of ips, and 
+    foreach my $ip (sort keys %{$banData}) {
+        #strip the trailing comma from the string
+        $comment = substr(($banData->{$ip}->{'banComment'}),0,-1);
+        $comment = "AutoBan - Score: $banData->{$ip}->{'banScore'} Reason: " . "$comment";
+		
+        #if above threshold, ban!
+        if ($banData->{$ip}->{'banScore'} >= $banTheshold){ 
+        
+        	#if db bans are disabled, print in nginx conf form
+			if ($opt_nodb) {
+				if ( $curlOutput == 0) {
+				
+					#check if ip is banned by looking in existing blockips file.
+                    my $match_found = any { /$ip/ } @denyArray; 
+                    #a match should return 1
+					if ( $match_found != 1 ) {
+						print "deny $ip;\n";
+						$banCount++;
+					}
+					else{
+						debugOutput("**DEBUG: ip already banned in nginx conf: $ip");
+					}
+				}
+				
+				#we could not get the sysban config, so just print everything w/o checking
+				else{
+				
+					print "deny $ip;\n";
+					$banCount++;
+				}
+
+				
+			}
+			else {
+			
+				if (($curlExitCode >> 8) == 0) {
+				
+					#check if ip is banned by looking in existing blockips file.
+					my $match_found = any { /$ip/ } @denyArray; 
+					#a match should return 1. if there is no match, ban the ip
+					if ( $match_found != 1 ) {
+						print "Banning: $ip: $comment\n";
+						#***REMOVE OR CHANGE this should return a hash with ip :  reason for ban
+						#my $banResult = `sysban.pl --add  --what=ip --banlength=30d --value=$ip --note='$comment'  2>&1`;
+						#if ($banResult =~ /CREATED/){print "$banResult\n";}else{print "ERROR: $banResult\n";}
+						$banCount++;
+					}
+					else{
+						debugOutput("**DEBUG: ip already banned in blockips.conf: $ip");
+					}
+				}
+				
+				#we could not get the sysban config, so just try to do a ban anyway...
+				else{
+				
+					print "Banning: $ip: $comment\n";
+					#TODO: make this return from hash
+					my $banResult = `true'  2>&1`;
+					if ($banResult =~ /CREATED/){print "$banResult\n";}else{print "ERROR: $banResult\n";}
+					$banCount++;
+				
+				}
+
+			}
+
+
+        
+        }
+
+	
+    }
+
+}
+
+
+sub insepectPerIpData {
+
+    #look through the list of ips, and 
+    foreach my $ip (sort keys %{$banData}) {
+		
+        #skip anything marked as a crawler
+        if ($banData->{$ip}->{'isCrawler'} eq "false" ) {
+			debugOutput("**DEBUG: Inspecting $ip");
+
+            #temp vars
+            my ($isLoggedIn, $postMethodPercentage, $postPercentage, $badResponseCodePercent, $varyUserAgent, $hasCookie, $hasUserAgent);
+			my $tempActionCount = 0;
+			my $tempBadResponseCount = 0; 
+			my $writeUrlCount = 0;
+
+			#TODO: put this in config
+            my $numOfResults = '100';
+            $result2 = $es->search(
+                size => $numOfResults,
+                queryb => {
+                    remote_address => $ip,
+                    "\@timestamp" => { 'gte' => $dt_period },
+                },
+            );
+
+            #Look at each request for this ip
+            my $i=0;
+            while ($i < $result2->{'hits'}->{'total'}) {
+                       
+                #get data for each request out.         
+                my $data = ($result2->{'hits'}->{'hits'}->[$i]);
+
+				#TODO: make all of this happen in the config 
+                #see if they have a one of our cookies
+                if ($data->{'_source'}->{'cookies'} =~ /foouniq|mastersession/i){$hasCookie = "true";}
+                #see if there is a useragent
+                if ($data->{'_source'}->{'http_user_agent'} ne "-"){$hasUserAgent = "true";}
+                if ($data->{'_source'}->{'request_method'} =~ /post/i){$tempActionCount++;}
+                if ($data->{'_source'}->{'status'} !~ /200|302|304|401|306|500/i){$tempBadResponseCount++;}
+                if ($data->{'_source'}->{'requested_uri'} =~ /post.php|comments.html|html\?mode\=reply|\/edit/i){$writeUrlCount++;}
+                
+                $i++;
+            }
+
+            #put final data into hash
+            $banData->{$ip}->{'hasCookie'} = $hasCookie ||  "false";
+            $banData->{$ip}->{'isLoggedIn'} = $isLoggedIn;
+            $banData->{$ip}->{'hasUserAgent'} = $hasUserAgent;
+  
+            $banData->{$ip}->{'postMethodPercentage'} = getPercentage("$numOfResults", "$tempActionCount");
+            $banData->{$ip}->{'badResponsePercentage'} = getPercentage("$numOfResults", "$tempBadResponseCount");
+            $banData->{$ip}->{'writeUrlPercentage'} = getPercentage("$numOfResults", "$writeUrlCount");
+        
+
+        }
+        else {
+			debugOutput("**DEBUG: Skipping $ip as it appears to be a crawler\n");
+        
+        }
+    }
+}
+
+
+sub gatherBasicIpInfo {
+    #run through the ips, find which ones are bots
+    foreach my $ip (sort keys %{$facetedData->{'ip'}}) {
+        #make a hash key/val for the current ip
+        my $num_reqs = $facetedData->{'ip'}->{$ip};
+        my $perc = $num_reqs / $num_purges;
+        my $pretty_perc = sprintf("%.3f", $perc);
+        $pretty_perc *= 100;
+
+        #push what we found into the array  
+        $banData->{$ip}->{'isCrawler'} = checkForCrawlers($ip);
+        $banData->{$ip}->{'hitCount'} = $num_reqs;
+        $banData->{$ip}->{'purgeHitPercentage'} = $pretty_perc;
+
+    }
+}
+
+sub isp_of_ip {
+    my $ip = shift;
+    my $gi = Geo::IP::PurePerl->open("$geoOrgDatabase");
+    return $gi->isp_by_addr($ip);
+}
+
+sub checkForCrawlers {
+    my $ip = shift;
+    return '' unless $ip;
+    #ipv6 regex from http://download.dartware.com/thirdparty/test-ipv6-regex.pl
+    return $ip unless $ip =~ /^(\d{1,3}\.){3}\d{1,3}$/ || $ip =~ qr/^(((?=(?>.*?::)(?!.*::)))(::)?([0-9A-F]{1,4}::?){0,5}|([0-9A-F]{1,4}:){6})(\2([0-9A-F]{1,4}(::?|$)){0,2}|((25[0-5]|(2[0-4]|1[0-9]|[1-9])?[0-9])(\.|$)){4}|[0-9A-F]{1,4}:[0-9A-F]{1,4})(?<![^:]:)(?<!\.)\z/i;
+    if ($ip =~ /172.21./){
+        my $hostName = `host $ip`;
+        $hostName =~ s/.*pointer //;
+        return $hostName;
+    }
+    $isp = isp_of_ip($ip) || '-';
+
+    #run through the array of crawler names, if there is a match, return true
+        if ($isp =~ /$crawlers/i){
+        	debugOutput("**DEBUG: $ip appears to be a crawler");
+        	return "true";
+        }else{
+        	return "false";
+        }
+    
+}
+
+sub getPercentage {
+
+    my ($first , $second) = (shift, shift);
+
+    if ($second == 0){
+        return 0;
+    
+    }
+    else {
+        my $perc = $second / $first;
+        my $pretty_perc = sprintf("%.3f", $perc);
+        $pretty_perc *= 100;
+        return $pretty_perc;
+    }
+
+}
+
+
+
+#required to import
+1;

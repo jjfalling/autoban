@@ -1,4 +1,5 @@
 Here is an example of how to configure nginx and logstash to get the required feilds for the nginx input. 
+Also see the logstash-template.json to configure logstash to work with ipv6 addresses. 
 
 
 nginx.conf:
