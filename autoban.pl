@@ -35,21 +35,29 @@ use File::NFSLock;
 my $configFile = "autoban.cfg";
 
 #define program version
-my $version = "0.1";
+my $autobanVersion = "0.1";
 
 
-my ($help, $man, $foreground, $debug, $safe);
+my ($help, $man, $foreground, $debug, $safe, $verbose, $version);
 my @plugins;
 
+#TODO: fix whole debug vs verbose thing. 
 Getopt::Long::Configure('bundling');
 GetOptions
         ('h|help|?' => \$help, man => \$man,
          'f|foreground' => \$foreground,
          "d|debug" => \$debug,
+         "V|verbose" => \$verbose,
+         "v|version" => \$version,
          "s|safe" => \$safe) or pod2usage(2);
 
 pod2usage(1) if $help;
 pod2usage(-exitval => 0, -verbose => 2) if $man;
+
+if ($version) {
+	print "autoban $autobanVersion\n";
+	exit;
+}
 
 # Before we do anything else, try to get an exclusive lock
 my $lock = File::NFSLock->new($0, LOCK_EX|LOCK_NB); 
@@ -75,8 +83,9 @@ our $autobanConfig = new Config::Simple(filename=>"$configFile");
 
 
 print "\n\n";
-print "Starting Autoban v.$version, please wait...\n\n";
+print "Starting Autoban v.$autobanVersion, please wait...\n\n";
 debugOutput("\n**DEBUG: Debugging enabled");
+
 
 #check if running as root, if so give warning.
 if ( $< == 0 ) {
@@ -86,9 +95,11 @@ if ( $< == 0 ) {
 	print "********************************************************\n\n\n"; 
 }
 
-#define a HoH to shove all of our data in.
-# the format will be banData = {ip} => {plugin} => [info about the ip] => [value for each key]
-my $banData;
+#Define a HoHoHoL(?) to shove all of our data in. 
+#I originally did this by ip instead of plugin, but I want to have the ability to specify routing between plugins and separate their data.
+# the format will be data = {plugin} => {ipData} => [info about the ip]
+#                                       {pluginData} => (varies by plugin)
+our $data;
 
 
 #look through the plugin directories and load the plugins
@@ -115,7 +126,13 @@ debugOutput("**DEBUG: found following plugins: @plugins");
 #TEMP
 require "./plugins/nginx-es.input";
 nginx_es_input();
+require "./plugins/nginx.filter";
+nginx_filter();
 
+#if debuging is enabled, give raw data
+if ($debug) {
+	print Dumper($data);
+}
 
 
 #TODO, when enabling outputs, obey safe mode
@@ -150,10 +167,12 @@ autoban [options]
 
  Options:
    -d,--debug       enable debugging
+   -V,--verbose     enable verbose messages
    -f,--foreground  run in foreground
    -h,-help         brief help message
    -man             full documentation
    -s,--safe        safe mode
+   -v,--version     display version
 
 =head1 DESCRIPTION
 
@@ -169,6 +188,9 @@ No options are required
 =item B<-d, --debug> 
 Enable debug mode
 
+=item B<-v, --verbose> 
+Enable verbose messages
+
 =item B<-f, --foreground>
 Run in foreground. This will enable you to run autoban in the foreground, even if the daemon is running.
 
@@ -180,6 +202,9 @@ Print the manual page.
 
 =item B<-s,--safe>
 Run in safe mode. This will not preform any bans, but instead display what would have happened. This is useful if you want to run this in read only mode. 
+
+=item B<-v, --version> 
+Display program version 
 
 =back
 
