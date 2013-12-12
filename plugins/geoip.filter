@@ -1,0 +1,8 @@
+#TODO: move all geo stuff (org, country, etc) to here as its own thing
+use Geo::IP::PurePerl;
+
+sub isp_of_ip {
+    my $ip = shift;
+    my $gi = Geo::IP::PurePerl->open("$geoOrgDatabase");
+    return $gi->isp_by_addr($ip);
+}

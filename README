@@ -1,6 +1,7 @@
 autoban
 
-NOTE: This project is currently pre-alpha and the code will drastically change.
+NOTE: This project is currently pre-alpha and the code will drastically change and I more then likely will push broken code. With that said I welcome anyone who wants to help develop this project )))
+
 
 The original version of autoban was developed at one of the internet's largest websites in order to block abuse and attacks that caused downtime. 
 
@@ -8,15 +9,15 @@ Autoban works by analyzing logs stored in elasticsearch against filters and rule
 
 
 
-The current design is as follows (? denotes proposed and not yet created):
+The current design is as follows (? denotes proposed and not yet created or designed):
 
 
 Inputs            →           Filters        →       Outputs
 [Nginx logs from ES]          [Whitelist]            [Nginx ban list]
 [Apache logs from ES]         [Allow Rules]          [PfSense ip blocks?]
 [Varnish logs from ES?]       [Blacklist?]           [Hosts.deny?]
-                              [Block Rules]          [Iptables?]   
-                                                     [Apache deny?]
+[SSH logs from ES?]           [Block Rules]          [Iptables?]   
+                              [geoip]                [Apache deny?]
 								
 								
-Original version developed with the assistance of kurtado (https://github.com/kurtado)
+Original version developed with the assistance of Kurt Hurtado (https://github.com/kurtado)
