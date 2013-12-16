@@ -1,0 +1,11 @@
+nginxban.conf:
+This is an example of a the expected nginx deny format that would be on your webs to deny certain ips. 
+
+logstash.conf:
+An example for grabbing and parsing nginx logs with our custom format.
+
+nginx-log-format.conf:
+The custom nginx format we use for this project. 
+
+logstash-template.json:
+This template is required to make ipv6 ips show up correctly. This may be phased out with the new logstash template.
