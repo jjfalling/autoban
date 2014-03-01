@@ -20,4 +20,7 @@ Inputs            →           Filters        →       Outputs
                               [geoip]                [Apache deny?]
 								
 								
-Original version developed with the assistance of Kurt Hurtado (https://github.com/kurtado)
+You will need to use the logstash template for some fields to work correctly with this (such as anything with IPv6 IPs). You can find the template here: https://github.com/elasticsearch/logstash/blob/master/lib/logstash/outputs/elasticsearch/elasticsearch-template.json
+
+
+Original version and concept developed with the assistance of Kurt Hurtado (https://github.com/kurtado)
