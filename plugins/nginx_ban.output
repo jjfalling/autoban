@@ -1,0 +1,52 @@
+
+#you musst use version 0.75+ of the es module!
+use Elasticsearch;
+#TODO: use es module w/o compat layer
+use Elasticsearch::Compat;
+
+use Geo::IP::PurePerl;
+use List::MoreUtils 'any';
+use warnings;
+
+
+my $facetedData;
+#you need to use the MaxMind GeoIP Organization Database. TODO: Migrate away from this?
+my $geoOrgDatabase="/var/lib/GeoIP/GeoIPOrg.dat";
+my $crawlers="microsoft|yandex|yahoo|google";
+my $result2;
+my $high = 5;
+my $low = 4;
+my $servers = $autobanConfig->param('nginx-es-input.elasticsearchServers');
+
+
+my $es = Elasticsearch::Compat->new(
+       servers => "$servers",
+       transport    => 'http',                  # default ÕhttpÕ
+       max_requests => 10_000,                 # default 10_000
+       #trace_calls  => 'log_file',
+       ) || die "can't get new \$es\n";
+
+
+my $dt_period = 'now-15m';
+my $facetFeild = 'remote_address.raw';
+my $type = 'nginxAccess';
+my $curlOutput;
+my $curlExitCode;
+my $num_purges;
+
+sub nginx_es_input {
+
+	my $result = $es->search(
+		facets  => {
+		ipFacet => {
+			terms => {
+			field => $facetFeild,
+			size => 50,
+			},
+			facet_filterb => { 
+			_type => $type,
+			"\@timestamp" => { 'gte' => $dt_period },
+			},
+		}
+		},
+		);

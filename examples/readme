@@ -7,5 +7,3 @@ An example for grabbing and parsing nginx logs with our custom format.
 nginx-log-format.conf:
 The custom nginx format we use for this project. 
 
-logstash-template.json:
-This template is required to make ipv6 ips show up correctly. This may be phased out with the new logstash template.

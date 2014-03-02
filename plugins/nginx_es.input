@@ -1,7 +1,7 @@
 
-#you must use version 0.75+ of the es module!
+#you musst use version 0.75+ of the es module!
 use Elasticsearch;
-#TODO: migtate to new es module w/o compat layer
+#TODO: use es module w/o compat layer
 use Elasticsearch::Compat;
 
 use Geo::IP::PurePerl;
@@ -16,7 +16,7 @@ my $crawlers="microsoft|yandex|yahoo|google";
 my $result2;
 my $high = 5;
 my $low = 4;
-my $servers = $autobanConfig->param("nginx-es-input.elasticsearchServers");
+my $servers = $autobanConfig->param('nginx-es-input.elasticsearchServers');
 
 
 my $es = Elasticsearch::Compat->new(
@@ -27,12 +27,12 @@ my $es = Elasticsearch::Compat->new(
        ) || die "can't get new \$es\n";
 
 
-#$autobanConfig->param("autoban.mysqlHost");
 my $dt_period = 'now-15m';
-my $facetFeild = 'remote_address';
+my $facetFeild = 'remote_address.raw';
 my $type = 'nginxAccess';
 my $curlOutput;
 my $curlExitCode;
+my $num_purges;
 
 sub nginx_es_input {
 
@@ -56,21 +56,18 @@ sub nginx_es_input {
 	#my (@bad, $facet);
 	foreach my $res (@{$result->{'facets'}->{'ipFacet'}->{'terms'}}) {
 		next if $res->{'term'} eq '-';
-	#    print "$res->{'term'}: $res->{'count'}\n";
 		$facetedData->{'ip'}->{$res->{'term'}} = $res->{'count'};
 		my $ip = $res->{'term'};
 		$ip =~ s/\.(\d{1,3})$//;
-	#    print "subA: $ip\n";
 	}
 
 
-	#***REMOVE OR TURN INTO MAX REQUESTES FROM CACHE PURGE
-	#get the number of purges
-	our $num_purges = $facetedData->{'ip'}->{'192.168.15.6'};
-	#if shit hit the fan and the purges are no longer working, lets assume 20000 purges/15 min
-	#if ($num_purges == 0){print "Looks like purge bot not working, assuming 20000 purges/ every 15 min\n"; $num_purges = 20000;}
-    if ($num_purges == 0){print "Looks like purge bot not working, assuming 20000 purges/ every 15 min\n"; $num_purges = 10;}
 
+	if ($autobanConfig->param("nginx-es-input.internalComparison")){
+		$num_purges = $facetedData->{'ip'}->{'192.168.15.6'};
+	    if ($num_purges == 0){print "Looks like internal comparison has no data, using backup setting\n"; $num_purges = $autobanConfig->param("nginx-es-input.internalComparisonBackupCount");}
+	}
+	
 	#get some data on these ips and their last x requests  
 	gatherBasicIpInfo();
 
@@ -102,7 +99,7 @@ sub gatherBasicIpInfo {
 			my $perc = $num_reqs / $num_purges;
 			my $pretty_perc = sprintf("%.3f", $perc);
 			$pretty_perc *= 100;
-			$data->{'nginx-input'}->{'ipData'}->{$ip}->{'internalComparison'} = $pretty_perc;
+			$data->{'nginx-input'}->{'ipData'}->{$ip}->{'nginx-es-input.internalComparison'} = $pretty_perc;
 
 		}
 
@@ -114,7 +111,7 @@ sub gatherBasicIpInfo {
 
 		#temp vars
 		my ($isLoggedIn, $postMethodPercentage, $postPercentage, $badResponseCodePercent, $varyUserAgent, $hasCookie, $hasUserAgent);
-		my $tempActionCount = 0;
+		my $postActionCount = 0;
 		my $tempBadResponseCount = 0; 
 		my $writeUrlCount = 0;
 
@@ -138,6 +135,7 @@ sub gatherBasicIpInfo {
 
 		}
 
+		#TODO: add login support (look for item field of $name=$value)
 		#Look at each request for this ip
 		my $i=0;
 		while ($i < $total) {
@@ -146,26 +144,29 @@ sub gatherBasicIpInfo {
 			my $tempData = ($result2->{'hits'}->{'hits'}->[$i]);
 
 			#TODO: make all of this happen in the config 
-			#see if they have a one of our cookies
-			if ($tempData->{'_source'}->{'cookies'} =~ /foouniq|mastersession/i){$hasCookie = "true";}
-			#see if there is a useragent
+			if ($autobanConfig->param("nginx-es-input.writeUrl")){
+				if ($tempData->{'_source'}->{'cookies'} =~ /$autobanConfig->param('nginx-es-input.cookie')/i){$hasCookie = "true";}
+			}
+
 			if ($tempData->{'_source'}->{'http_user_agent'} ne "-"){$hasUserAgent = "true";}
-			if ($tempData->{'_source'}->{'request_method'} =~ /post/i){$tempActionCount++;}
-			if ($tempData->{'_source'}->{'status'} !~ /200|302|304|401|306|500/i){$tempBadResponseCount++;}
-			if ($tempData->{'_source'}->{'requested_uri'} =~ /post.php|comments.html|html\?mode\=reply|\/edit/i){$writeUrlCount++;}
+			if ($tempData->{'_source'}->{'request_method'} =~ /post/i){$postActionCount++;}
+			if ($tempData->{'_source'}->{'status'} !~ /$autobanConfig->param('nginx-es-input.goodResponseCodes')/i){$tempBadResponseCount++;}
+			if ($tempData->{'_source'}->{'requested_uri'} =~ /$autobanConfig->param('nginx-es-input.writeUrl')/i){$writeUrlCount++;}
 			
 			$i++;
 		}
 
 		#put final data into hash
-		$data->{'nginx-input'}->{'ipData'}->{$ip}->{'hasCookie'} = $hasCookie ||  "false";
-		$data->{'nginx-input'}->{'ipData'}->{$ip}->{'isLoggedIn'} = $isLoggedIn;
+		if ($autobanConfig->param("nginx-es-input.writeUrl")){
+			$data->{'nginx-input'}->{'ipData'}->{$ip}->{'hasCookie'} = $hasCookie ||  "false";
+		}
+
 		$data->{'nginx-input'}->{'ipData'}->{$ip}->{'hasUserAgent'} = $hasUserAgent;
 
-		$data->{'nginx-input'}->{'ipData'}->{$ip}->{'postMethodPercentage'} = getPercentage("$maxNumOfResults", "$tempActionCount");
+		$data->{'nginx-input'}->{'ipData'}->{$ip}->{'postMethodPercentage'} = getPercentage("$maxNumOfResults", "$postActionCount");
 		$data->{'nginx-input'}->{'ipData'}->{$ip}->{'badResponsePercentage'} = getPercentage("$maxNumOfResults", "$tempBadResponseCount");
 		$data->{'nginx-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'} = getPercentage("$maxNumOfResults", "$writeUrlCount");
-
+		$data->{'nginx-input'}->{'ipData'}->{$ip}->{'isCrawler'} = checkForCrawlers($ip);
 
     }
 }
@@ -206,6 +207,36 @@ sub getPercentage {
 }
 
 
+sub checkForCrawlers {
+    my $ip = shift;
+    return '' unless $ip;
+    #ipv6 regex from http://download.dartware.com/thirdparty/test-ipv6-regex.pl
+    return $ip unless $ip =~ /^(\d{1,3}\.){3}\d{1,3}$/ || $ip =~ qr/^(((?=(?>.*?::)(?!.*::)))(::)?([0-9A-F]{1,4}::?){0,5}|([0-9A-F]{1,4}:){6})(\2([0-9A-F]{1,4}(::?|$)){0,2}|((25[0-5]|(2[0-4]|1[0-9]|[1-9])?[0-9])(\.|$)){4}|[0-9A-F]{1,4}:[0-9A-F]{1,4})(?<![^:]:)(?<!\.)\z/i;
+    if ($ip =~ /172.21./){
+        my $hostName = `host $ip`;
+        $hostName =~ s/.*pointer //;
+        return $hostName;
+    }
+    $isp = isp_of_ip($ip) || '-';
+
+    #run through the array of crawler names, if there is a match, return true
+        if ($isp =~ /$crawlers/i){
+        	debugOutput("**DEBUG: $ip appears to be a crawler");
+        	return "true";
+        }else{
+        	return "false";
+        }
+    
+}
+
+sub isp_of_ip {
+    my $ip = shift;
+    my $gi = Geo::IP::PurePerl->open("$geoOrgDatabase");
+    return $gi->isp_by_addr($ip);
+}
+
+
+
 
 #required to import
 1;
@@ -214,7 +245,7 @@ sub getPercentage {
 __END__
 
 
-#TODO: All of this needs to be moved somewhere else. partly autoban, partly nginx.filter
+#TODO: All of this needs to be moved somewhere else. partly autoban, partly nginx.filter, partly nginx_ban.output
 
 
 

@@ -64,7 +64,7 @@ my $lock = File::NFSLock->new($0, LOCK_EX|LOCK_NB);
 
 #unless we are running in the foreground, die if there is another copy
 unless ($foreground) {
-	die "\nERROR: I am already runing and I will not run another daemonized copy!\nTo run manually while the daemon is running, give the foreground flag\n\n" unless $lock;
+	die "\nERROR: I am already running and I will not run another demonized copy!\nTo run manually while the daemon is running, give the foreground flag\n\n" unless $lock;
 }
 
 
@@ -91,7 +91,7 @@ debugOutput("\n**DEBUG: Debugging enabled");
 if ( $< == 0 ) {
 	print "\n********************************************************\n";
 	print "* DANGERZONE: You are running Autoban as root!         *\n";
-	print "* This is probally a horrible idea security wise...    *\n";
+	print "* This is probably a horrible idea security wise...    *\n";
 	print "********************************************************\n\n\n"; 
 }
 
@@ -114,7 +114,7 @@ while (my $file = readdir(DIR)) {
 	next unless ($file =~ m/.*\.input|.output|.filter/);
 	my $value = $file;
 	my $key = $file;
-	#$key =~ s/.input|.filter|.output//;	
+	#$key =~ s/.input|.filter|.output//;
 	push (@plugins, "$value");
 
 }
@@ -123,22 +123,27 @@ closedir(DIR);
 
 debugOutput("**DEBUG: found following plugins: @plugins");
 
-#TEMP
-require "./plugins/nginx-es.input";
-nginx_es_input();
-require "./plugins/nginx.filter";
-nginx_filter();
-
-#if debuging is enabled, give raw data
-if ($debug) {
-	print Dumper($data);
-}
-
-
 #TODO, when enabling outputs, obey safe mode
 if ($safe) {
 	print "\nAnd remember this: there is no more important safety rule than to wear these — safety glasses (safe mode is enabled)\n\n";
 }
+
+
+#TEMP
+require "./plugins/nginx_es.input";
+nginx_es_input();
+require "./plugins/nginx.filter";
+nginx_filter();
+
+#require "./plugins/nginx_ban.output";
+#nginx_ban();
+
+#if debuging is enabled, give raw data
+#if ($debug) {
+#	print Dumper($data);
+#}
+
+
 
 
 
