@@ -6,8 +6,7 @@
  
  
 
-NOTE: This project is currently pre-alpha and the code will drastically change and I more then likely will push broken code. With that said I welcome anyone who wants to help develop this project )))
-
+NOTE: This project is currently pre-alpha and the code will drastically change and I more then likely will push broken code.
 The original version of autoban was developed at one of the internet's largest websites in order to block abuse and attacks that caused downtime. 
 
 Autoban works by analyzing logs stored in elasticsearch against filters and rules then generating ban or block entries.
