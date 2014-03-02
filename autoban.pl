@@ -139,9 +139,9 @@ nginx_filter();
 #nginx_ban();
 
 #if debuging is enabled, give raw data
-#if ($debug) {
-#	print Dumper($data);
-#}
+if ($debug) {
+	print Dumper($data);
+}
 
 
 

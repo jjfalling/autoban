@@ -20,7 +20,7 @@ sub flagForBan() {
 	$data->{'nginx-input'}->{'ipData'}->{$ip}->{'banScore'} = 0;
 
         #skip anything marked as a crawler
-        #if ($data->{'nginx-input'}->{'ipData'}->{$ip}->{'isCrawler'} eq "false" ) {
+        if ($data->{'nginx-input'}->{'ipData'}->{$ip}->{'isCrawler'} eq "false" ) {
 
             if ($data->{'nginx-input'}->{'ipData'}->{$ip}->{'hasCookie'} ne "true" ) {$data->{'nginx-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'nginx-input'}->{'ipData'}->{$ip}->{'banComment'}" . "No cookie ,"; $data->{'nginx-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'nginx-input'}->{'ipData'}->{$ip}->{'banScore'} + $low)}
             if ($data->{'nginx-input'}->{'ipData'}->{$ip}->{'hasUserAgent'} ne "true" ) {$data->{'nginx-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'nginx-input'}->{'ipData'}->{$ip}->{'banComment'}" . "No useragent ,"; $data->{'nginx-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'nginx-input'}->{'ipData'}->{$ip}->{'banScore'} + $high)}
@@ -40,7 +40,7 @@ sub flagForBan() {
 	
         }
 
-    #}
+    }
 
 }
 

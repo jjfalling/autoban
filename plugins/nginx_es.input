@@ -1,5 +1,6 @@
 
 #you musst use version 0.75+ of the es module!
+#and you must use elasticsearch 1.0+
 use Elasticsearch;
 #TODO: use es module w/o compat layer
 use Elasticsearch::Compat;
