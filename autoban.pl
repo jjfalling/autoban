@@ -23,12 +23,18 @@
 
 use strict;
 use warnings;
-use Config::Simple;
 use Data::Dumper;
+use Config::Simple;
 use Pod::Usage;
 use Getopt::Long;
 use Fcntl qw(LOCK_EX LOCK_NB);
 use File::NFSLock;
+
+#get offical elasticsearch module @ https://metacpan.org/pod/Elasticsearch
+use Elasticsearch;
+die "The Elasticsearch module must be >= v0.75! You have v$Elasticsearch::VERSION\n\n"
+    unless $Elasticsearch::VERSION >= 0.75;
+
 
 
 #Define config file
@@ -100,6 +106,15 @@ if ( $< == 0 ) {
 # the format will be data = {plugin} => {ipData} => [info about the ip]
 #                                       {pluginData} => (varies by plugin)
 our $data;
+
+
+#create the shared es instance
+#my $es = Elasticsearch::Compat->new(
+our $es = Elasticsearch->new(
+	cxn_pool => $autobanConfig->param('nginx-es-input.cnx_pool'),
+	nodes => $autobanConfig->param('nginx-es-input.elasticsearchServers'),
+	#trace_calls  => 'log_file',
+	) || die "can't get new \$es\n";
 
 
 #look through the plugin directories and load the plugins

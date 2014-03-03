@@ -1,9 +1,4 @@
-
-#you musst use version 0.75+ of the es module!
-#and you must use elasticsearch 1.0+
-use Elasticsearch;
-#TODO: use es module w/o compat layer
-use Elasticsearch::Compat;
+#get nginx logs from elasticsearch
 
 use Geo::IP::PurePerl;
 use List::MoreUtils 'any';
@@ -17,17 +12,9 @@ my $crawlers="microsoft|yandex|yahoo|google";
 my $result2;
 my $high = 5;
 my $low = 4;
-my $servers = $autobanConfig->param('nginx-es-input.elasticsearchServers');
 
 
-my $es = Elasticsearch::Compat->new(
-       servers => "$servers",
-       transport    => 'http',                  # default ’http’
-       max_requests => 10_000,                 # default 10_000
-       #trace_calls  => 'log_file',
-       ) || die "can't get new \$es\n";
-
-
+#typically you want more then 5 or 10 min to normalize the data
 my $dt_period = 'now-15m';
 my $facetFeild = 'remote_address.raw';
 my $type = 'nginxAccess';

@@ -1,3 +1,8 @@
+#this output generates a nginx ban list
+#it also keeps a historical record in an elasticsearch index (yay! using es as a datastore! )
+#the record in es will have the ip, epoch time ban was created, ban length, module name, and comment. 
+#this way we take care of creating and expiring bans in nginx. 
+
 
 #you musst use version 0.75+ of the es module!
 use Elasticsearch;
@@ -16,15 +21,6 @@ my $crawlers="microsoft|yandex|yahoo|google";
 my $result2;
 my $high = 5;
 my $low = 4;
-my $servers = $autobanConfig->param('nginx-es-input.elasticsearchServers');
-
-
-my $es = Elasticsearch::Compat->new(
-       servers => "$servers",
-       transport    => 'http',                  # default ÕhttpÕ
-       max_requests => 10_000,                 # default 10_000
-       #trace_calls  => 'log_file',
-       ) || die "can't get new \$es\n";
 
 
 my $dt_period = 'now-15m';
