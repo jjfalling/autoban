@@ -49,19 +49,13 @@ my $result = $es->search(
 					]
 				}
 	  		}
-	  	},
-        query => {
-            match => { 
-            	_type => $type,
-			},
-        },
+	  	}
 
     },
     #use size=0 to only give the faceted data
     size => 0
 );
 
-print Dumper($result);
 
 # 	my $result = $es->search(
 # 		facets  => {
@@ -142,18 +136,49 @@ sub gatherBasicIpInfo {
 		my $writeUrlCount = 0;
 
 
-		$result2 = $es->search(
-			size => $autobanConfig->param("nginx-es-input.maxNumOfResults"),
-			query => {
-				remote_address => $ip,
-				"\@timestamp" => { 'gte' => $dt_period },
-			},
-		);
+
+my $result2 = $es->search(
+    
+    size => $autobanConfig->param('nginx-es-input.maxNumOfResults'),
+    body  => {
+        filter => {
+			and => [
+				{
+					term => {
+						_type => $type
+					}
+				},
+				{
+					range => {
+						'@timestamp' => {
+							gte => $dt_period,
+						}
+					}
+				}
+			]
+		},
+        query => {
+            match => { 
+            	remote_address => $ip
+			}
+
+        }
+    }
+);
+
+
+# 		$result2 = $es->search(
+# 			size => $autobanConfig->param("nginx-es-input.maxNumOfResults"),
+# 			query => {
+# 				remote_address => $ip,
+# 				"\@timestamp" => { 'gte' => $dt_period },
+# 			},
+# 		);
 
 		#figure out how many results there are and if greater then maxNumOfResults
 		my $total;
-		if ($result2->{'hits'}->{'total'} >= $maxNumOfResults) {
-			$total = $maxNumOfResults;
+		if ($result2->{'hits'}->{'total'} >= $autobanConfig->param('nginx-es-input.maxNumOfResults')) {
+			$total = $autobanConfig->param('nginx-es-input.maxNumOfResults');
 		}
 		else {
 			$total = $result2->{'hits'}->{'total'};
@@ -188,9 +213,9 @@ sub gatherBasicIpInfo {
 
 		$data->{'nginx-input'}->{'ipData'}->{$ip}->{'hasUserAgent'} = $hasUserAgent;
 
-		$data->{'nginx-input'}->{'ipData'}->{$ip}->{'postMethodPercentage'} = getPercentage("$maxNumOfResults", "$postActionCount");
-		$data->{'nginx-input'}->{'ipData'}->{$ip}->{'badResponsePercentage'} = getPercentage("$maxNumOfResults", "$tempBadResponseCount");
-		$data->{'nginx-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'} = getPercentage("$maxNumOfResults", "$writeUrlCount");
+		$data->{'nginx-input'}->{'ipData'}->{$ip}->{'postMethodPercentage'} = getPercentage($autobanConfig->param('nginx-es-input.maxNumOfResults'), "$postActionCount");
+		$data->{'nginx-input'}->{'ipData'}->{$ip}->{'badResponsePercentage'} = getPercentage($autobanConfig->param('nginx-es-input.maxNumOfResults'), "$tempBadResponseCount");
+		$data->{'nginx-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'} = getPercentage($autobanConfig->param('nginx-es-input.maxNumOfResults'), "$writeUrlCount");
 		$data->{'nginx-input'}->{'ipData'}->{$ip}->{'isCrawler'} = checkForCrawlers($ip);
 
     }

@@ -40,7 +40,7 @@ sub flagForBan() {
             }
             
             if ($autobanConfig->param("nginx-es-input.internalComparison")){
-            	if ($data->{'nginx-input'}->{'ipData'}->{$ip}->{'nginx-es-input.internalComparison'} > 50 ) {$data->{'nginx-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'nginx-input'}->{'ipData'}->{$ip}->{'banComment'}" . "Too many hits compared to internal comparison ,"; $data->{'nginx-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'nginx-input'}->{'ipData'}->{$ip}->{'banScore'} + $low)}
+            	if ($data->{'nginx-input'}->{'ipData'}->{$ip}->{'internalComparison'} > 50 ) {$data->{'nginx-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'nginx-input'}->{'ipData'}->{$ip}->{'banComment'}" . "Too many hits compared to internal comparison ,"; $data->{'nginx-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'nginx-input'}->{'ipData'}->{$ip}->{'banScore'} + $low)}
             }
 
 			#$isp = isp_of_ip($ip) || '-';
