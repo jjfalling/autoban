@@ -6,9 +6,6 @@ use warnings;
 
 
 my $facetedData;
-#you need to use the MaxMind GeoIP Organization Database. TODO: Migrate away from this?
-my $geoOrgDatabase="/var/lib/GeoIP/GeoIPOrg.dat";
-my $crawlers="microsoft|yandex|yahoo|google";
 my $result2;
 my $high = 5;
 my $low = 4;
@@ -270,7 +267,7 @@ sub checkForCrawlers {
     $isp = isp_of_ip($ip) || '-';
 
     #run through the array of crawler names, if there is a match, return true
-        if ($isp =~ /$crawlers/i){
+        if ($isp =~ /$autobanConfig->param('nginx-filter.crawlers')/i){
         	debugOutput("**DEBUG: $ip appears to be a crawler");
         	return "true";
         }else{
@@ -281,7 +278,7 @@ sub checkForCrawlers {
 
 sub isp_of_ip {
     my $ip = shift;
-    my $gi = Geo::IP::PurePerl->open("$geoOrgDatabase");
+    my $gi = Geo::IP::PurePerl->open($autobanConfig->param('nginx-filter.geoOrgDatabase'));
     return $gi->isp_by_addr($ip);
 }
 
