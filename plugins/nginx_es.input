@@ -27,28 +27,28 @@ my $result = $es->search(
     
     body  => {
         facets => {
-           terms => {
+           ipFacet => {
 			   terms => {
 		  	      field =>  $autobanConfig->param('nginx-es-input.facetFeild'),
 		  		  size => $autobanConfig->param('nginx-es-input.topIps'),
 	  		 	},
 		        facet_filter => {
 					and => [
-					{
-        			term => {
-        				_type => $type
-        			}
-        			},
-        			{
-					range => {
-						'@timestamp' => {
-							gte => $dt_period,
+						{
+							term => {
+								_type => $type
+							}
+						},
+						{
+							range => {
+								'@timestamp' => {
+									gte => $dt_period,
+								}
+							}
 						}
-					}
-					}
 					]
-				},
-	  		},
+				}
+	  		}
 	  	},
         query => {
             match => { 
@@ -62,8 +62,6 @@ my $result = $es->search(
 );
 
 print Dumper($result);
-exit;
-
 
 # 	my $result = $es->search(
 # 		facets  => {
@@ -79,7 +77,6 @@ exit;
 # 		}
 # 		},
 # 		);
-
 
 
 	#my (@bad, $facet);
@@ -128,7 +125,7 @@ sub gatherBasicIpInfo {
 			my $perc = $num_reqs / $num_purges;
 			my $pretty_perc = sprintf("%.3f", $perc);
 			$pretty_perc *= 100;
-			$data->{'nginx-input'}->{'ipData'}->{$ip}->{'nginx-es-input.internalComparison'} = $pretty_perc;
+			$data->{'nginx-input'}->{'ipData'}->{$ip}->{'internalComparison'} = $pretty_perc;
 
 		}
 
@@ -144,11 +141,10 @@ sub gatherBasicIpInfo {
 		my $tempBadResponseCount = 0; 
 		my $writeUrlCount = 0;
 
-		#TODO: put this in config
-		my $maxNumOfResults = '100';
+
 		$result2 = $es->search(
-			size => $maxNumOfResults,
-			queryb => {
+			size => $autobanConfig->param("nginx-es-input.maxNumOfResults"),
+			query => {
 				remote_address => $ip,
 				"\@timestamp" => { 'gte' => $dt_period },
 			},
