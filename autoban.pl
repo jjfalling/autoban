@@ -109,12 +109,11 @@ our $data;
 
 
 #create the shared es instance
-#my $es = Elasticsearch::Compat->new(
 our $es = Elasticsearch->new(
 	cxn_pool => $autobanConfig->param('nginx-es-input.cnx_pool'),
 	nodes => $autobanConfig->param('nginx-es-input.elasticsearchServers'),
-	#trace_calls  => 'log_file',
-	) || die "can't get new \$es\n";
+	#trace_to  => ['File','log_file'],
+	) || die "Cannot create new es instance: \$es\n";
 
 
 #look through the plugin directories and load the plugins

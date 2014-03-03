@@ -16,7 +16,6 @@ my $low = 4;
 
 #typically you want more then 5 or 10 min to normalize the data
 my $dt_period = 'now-15m';
-my $facetFeild = 'remote_address.raw';
 my $type = 'nginxAccess';
 my $curlOutput;
 my $curlExitCode;
@@ -24,20 +23,62 @@ my $num_purges;
 
 sub nginx_es_input {
 
-	my $result = $es->search(
-		facets  => {
-		ipFacet => {
-			terms => {
-			field => $facetFeild,
-			size => 50,
+my $result = $es->search(
+    
+    body  => {
+        facets => {
+           terms => {
+			   terms => {
+		  	      field =>  $autobanConfig->param('nginx-es-input.facetFeild'),
+		  		  size => $autobanConfig->param('nginx-es-input.topIps'),
+	  		 	},
+		        facet_filter => {
+					and => [
+					{
+        			term => {
+        				_type => $type
+        			}
+        			},
+        			{
+					range => {
+						'@timestamp' => {
+							gte => $dt_period,
+						}
+					}
+					}
+					]
+				},
+	  		},
+	  	},
+        query => {
+            match => { 
+            	_type => $type,
 			},
-			facet_filterb => { 
-			_type => $type,
-			"\@timestamp" => { 'gte' => $dt_period },
-			},
-		}
-		},
-		);
+        },
+
+    },
+    #use size=0 to only give the faceted data
+    size => 0
+);
+
+print Dumper($result);
+exit;
+
+
+# 	my $result = $es->search(
+# 		facets  => {
+# 		ipFacet => {
+# 			terms => {
+# 			field => $facetFeild,
+# 			size => 50,
+# 			},
+# 			facet_filterb => { 
+# 			_type => $type,
+# 			"\@timestamp" => { 'gte' => $dt_period },
+# 			},
+# 		}
+# 		},
+# 		);
 
 
 
