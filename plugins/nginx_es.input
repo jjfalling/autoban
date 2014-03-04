@@ -3,7 +3,7 @@
 use Geo::IP::PurePerl;
 use List::MoreUtils 'any';
 use warnings;
-
+#use strict;
 
 my $facetedData;
 my $result2;
@@ -191,7 +191,7 @@ my $result2 = $es->search(
 			my $tempData = ($result2->{'hits'}->{'hits'}->[$i]);
 
 			#TODO: make all of this happen in the config 
-			if ($autobanConfig->param("nginx-es-input.writeUrl")){
+			if ($autobanConfig->param("nginx-es-input.cookie")){
 				if ($tempData->{'_source'}->{'cookies'} =~ /$autobanConfig->param('nginx-es-input.cookie')/i){$hasCookie = "true";}
 			}
 
@@ -204,7 +204,7 @@ my $result2 = $es->search(
 		}
 
 		#put final data into hash
-		if ($autobanConfig->param("nginx-es-input.writeUrl")){
+		if ($autobanConfig->param("nginx-es-input.cookie")){
 			$data->{'nginx-input'}->{'ipData'}->{$ip}->{'hasCookie'} = $hasCookie ||  "false";
 		}
 
