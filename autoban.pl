@@ -110,8 +110,9 @@ our $data;
 
 #create the shared es instance
 our $es = Elasticsearch->new(
-	cxn_pool => $autobanConfig->param('nginx-es-input.cnx_pool'),
-	nodes => $autobanConfig->param('nginx-es-input.elasticsearchServers'),
+	cxn_pool => $autobanConfig->param('autoban.cnx_pool'),
+	#nodes => $autobanConfig->param('autoban.esNodes'),
+	nodes => ['127.0.0.1:9200'],
 	#trace_to  => ['File','log_file'],
 	) || die "Cannot create new es instance: \$es\n";
 
@@ -144,10 +145,15 @@ if ($safe) {
 
 
 #TEMP
-require "./plugins/nginx_es.input";
-nginx_es_input();
-require "./plugins/nginx.filter";
-nginx_filter();
+#require "./plugins/nginx_es.input";
+#nginx_es_input();
+#require "./plugins/nginx.filter";
+#nginx_filter();
+
+require "./plugins/apache_es.input";
+apache_es_input();
+#require "./plugins/nginx.filter";
+#nginx_filter();
 
 #require "./plugins/nginx_ban.output";
 #nginx_ban();
