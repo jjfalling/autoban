@@ -30,7 +30,9 @@ my $curlOutput;
 my $curlExitCode;
 my $num_purges;
 
-sub nginx_es_input {
+sub nginx_ban_output {
+	debugOutput("\n**DEBUG: Running nginx_ban_output\n");
+
 
 	my $result = $es->search(
 		facets  => {

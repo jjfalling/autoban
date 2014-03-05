@@ -70,7 +70,7 @@ my $lock = File::NFSLock->new($0, LOCK_EX|LOCK_NB);
 
 #unless we are running in the foreground, die if there is another copy
 unless ($foreground) {
-	die "\nERROR: I am already running and I will not run another demonized copy!\nTo run manually while the daemon is running, give the foreground flag\n\n" unless $lock;
+	die "\nERROR: I am already running and I will not run another demonized copy!\nTo run manually while the daemon is running, give the foreground flag. See help or the man page\n\n" unless $lock;
 }
 
 
@@ -139,7 +139,7 @@ debugOutput("**DEBUG: found following plugins: @plugins");
 
 #TODO, when enabling outputs, obey safe mode
 if ($safe) {
-	print "\nAnd remember this: there is no more important safety rule than to wear these — safety glasses (safe mode is enabled)\n\n";
+	print "\nAnd remember this: there is no more important safety rule than to wear these — safety glasses (safe mode is enabled)\n";
 }
 
 
