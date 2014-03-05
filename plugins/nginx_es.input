@@ -152,7 +152,7 @@ my $result2 = $es->search(
 			and => [
 				{
 					term => {
-						_type => $type
+						_type => $autobanConfig->param('nginx-es-input.logType')
 					}
 				},
 				{

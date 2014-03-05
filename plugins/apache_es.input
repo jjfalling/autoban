@@ -151,7 +151,7 @@ my $result2 = $es->search(
 			and => [
 				{
 					term => {
-						_type => $type
+						_type => $autobanConfig->param('apache-es-input.logType')
 					}
 				},
 				{
@@ -279,7 +279,7 @@ sub checkForCrawlers {
     $isp = isp_of_ip($ip) || '-';
 
     #run through the array of crawler names, if there is a match, return true
-        if ($isp =~ /$autobanConfig->param('nginx-filter.crawlers')/i){
+        if ($isp =~ /$autobanConfig->param('apache-filter.crawlers')/i){
         	debugOutput("**DEBUG: $ip appears to be a crawler");
         	return "true";
         }else{
