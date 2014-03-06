@@ -4,7 +4,8 @@
 | (_| | |_| | || (_) | |_) | (_| | | | |
  \__,_|\__,_|\__\___/|_.__/ \__,_|_| |_|
  
- 
+Because the we need more opensource DoS/DDoS mitigation and protection 
+
 
 NOTE: This project is currently pre-alpha and the code will drastically change and I more then likely will push broken code.
 The original version of autoban was developed at one of the internet's largest websites in order to block abuse and attacks that caused downtime. 

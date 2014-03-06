@@ -158,10 +158,12 @@ apache_es_input();
 #require "./plugins/nginx_ban.output";
 #nginx_ban();
 
-#if debuging is enabled, give raw data
+#if debuging is enabled, give raw data. TEMP
 if ($debug) {
 	print Dumper($data);
 }
+
+
 
 
 
