@@ -165,12 +165,13 @@ my $result2 = $es->search(
 		},
         query => {
             match => { 
-            	remote_address => $ip
+            	$autobanConfig->param('apache-es-input.facetFeild') => $ip
 			}
 
         }
     }
 );
+
 
 
 debugOutput("**DEBUG: Search took $result2->{'took'}ms");
@@ -193,6 +194,7 @@ debugOutput("**DEBUG: Search took $result2->{'took'}ms");
 			$total = $result2->{'hits'}->{'total'};
 
 		}
+		
 
 		#TODO: add login support (look for item field of $name=$value)
 		#Look at each request for this ip
@@ -213,6 +215,7 @@ debugOutput("**DEBUG: Search took $result2->{'took'}ms");
 			if ($tempData->{'_source'}->{'request'} =~ /$autobanConfig->param('apache-es-input.writeUrl')/i){$writeUrlCount++;}
 			
 			$i++;
+			
 		}
 
 		#put final data into hash

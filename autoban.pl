@@ -113,7 +113,7 @@ our $es = Elasticsearch->new(
 	cxn_pool => $autobanConfig->param('autoban.cnx_pool'),
 	#nodes => $autobanConfig->param('autoban.esNodes'),
 	nodes => ['127.0.0.1:9200'],
-	#trace_to  => ['File','log_file'],
+	#trace_to => 'Stderr',
 	) || die "Cannot create new es instance: \$es\n";
 
 

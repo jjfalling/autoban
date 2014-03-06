@@ -166,7 +166,7 @@ my $result2 = $es->search(
 		},
         query => {
             match => { 
-            	remote_address => $ip
+            	$autobanConfig->param('nginx-es-input.facetFeild') => $ip
 			}
 
         }
