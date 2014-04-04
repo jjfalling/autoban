@@ -30,10 +30,10 @@ use Getopt::Long;
 use Fcntl qw(LOCK_EX LOCK_NB);
 use File::NFSLock;
 
-#get offical elasticsearch module @ https://metacpan.org/pod/Elasticsearch
-use Elasticsearch;
-die "The Elasticsearch module must be >= v0.75! You have v$Elasticsearch::VERSION\n\n"
-    unless $Elasticsearch::VERSION >= 0.75;
+#get offical elasticsearch module @ https://metacpan.org/pod/Search::Elasticsearch
+use Search::Elasticsearch;
+die "The Elasticsearch module must be >= v1.10! You have v$Search::Elasticsearch::VERSION\n\n"
+    unless $Search::Elasticsearch::VERSION >= 1.10;
 
 
 
@@ -109,7 +109,7 @@ our $data;
 
 
 #create the shared es instance
-our $es = Elasticsearch->new(
+our $es = Search::Elasticsearch->new(
 	cxn_pool => $autobanConfig->param('autoban.cnx_pool'),
 	#nodes => $autobanConfig->param('autoban.esNodes'),
 	nodes => ['127.0.0.1:9200'],
@@ -152,8 +152,8 @@ if ($safe) {
 
 require "./plugins/apache_es.input";
 apache_es_input();
-#require "./plugins/nginx.filter";
-#nginx_filter();
+require "./plugins/apache.filter";
+apache_filter();
 
 #require "./plugins/nginx_ban.output";
 #nginx_ban();
