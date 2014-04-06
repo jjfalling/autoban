@@ -9,12 +9,12 @@ my $banTheshold = 8;
  
 sub nginx_filter() {
 	debugOutput("\n**DEBUG: Running nginx_filter\n");
-	flagForBan();
+	nginxFlagForBan();
 }
 
 
 
-sub flagForBan() {
+sub nginxFlagForBan() {
 
 
 

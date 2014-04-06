@@ -7,14 +7,14 @@ my $high = 5;
 my $low = 4;
 my $banTheshold = 8;
  
-sub nginx_filter() {
+sub apache_filter() {
 	debugOutput("\n**DEBUG: Running nginx_filter\n");
-	flagForBan();
+	apacheFlagForBan();
 }
 
 
 
-sub flagForBan() {
+sub apacheFlagForBan() {
 
 
 

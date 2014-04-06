@@ -41,7 +41,7 @@ die "The Elasticsearch module must be >= v1.10! You have v$Search::Elasticsearch
 my $configFile = "autoban.cfg";
 
 #define program version
-my $autobanVersion = "0.1";
+my $autobanVersion = "0.0.1";
 
 
 my ($help, $man, $foreground, $debug, $safe, $verbose, $version);
