@@ -31,9 +31,9 @@ Inputs            →           Filters        →       Outputs
 
 							
 								
-You will need to use the logstash template for some fields to work correctly with this (such as anything with IPv6 IPs). You can find the template here: https://github.com/elasticsearch/logstash/blob/master/lib/logstash/outputs/elasticsearch/elasticsearch-template.json
+You will need to use the logstash template for some fields to work correctly with this (such as anything with IPv6 IPs). 
 
-Developed on ES version 1.0.1
+Developed on ES version 1.1.0, OpenSUSUE 13.1, and Perl 5.16/5.18
 
 
 Original version and concept developed in collaboration with Kurt Hurtado (https://github.com/kurtado)
