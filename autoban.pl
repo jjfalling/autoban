@@ -111,8 +111,7 @@ our $data;
 #create the shared es instance
 our $es = Search::Elasticsearch->new(
 	cxn_pool => $autobanConfig->param('autoban.cnx_pool'),
-	#nodes => $autobanConfig->param('autoban.esNodes'),
-	nodes => ['127.0.0.1:9200'],
+	nodes => [$autobanConfig->param('autoban.esNodes')],
 	#trace_to => 'Stderr',
 	) || die "Cannot create new es instance: \$es\n";
 
