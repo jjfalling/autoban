@@ -1,13 +1,9 @@
 #this output generates a nginx ban list
-#it also keeps a historical record in an elasticsearch index (yay! using es as a datastore! )
+#it also keeps a historical record in an elasticsearch index (yay! using es as a datastore! [This can be bad, just ask any es employee...] but I assume this data can be considered relatively ephemeral )
 #the record in es will have the ip, epoch time ban was created, ban length, module name, and comment. 
 #this way we take care of creating and expiring bans in nginx. 
 
 
-#you musst use version 0.75+ of the es module!
-use Elasticsearch;
-#TODO: use es module w/o compat layer
-use Elasticsearch::Compat;
 
 use Geo::IP::PurePerl;
 use List::MoreUtils 'any';
@@ -23,28 +19,23 @@ my $high = 5;
 my $low = 4;
 
 
-my $dt_period = 'now-15m';
-my $facetFeild = 'remote_address.raw';
-my $type = 'nginxAccess';
-my $curlOutput;
-my $curlExitCode;
-my $num_purges;
 
 sub nginx_ban_output {
-	debugOutput("\n**DEBUG: Running nginx_ban_output\n");
+    debugOutput("\n**DEBUG: Running nginx_ban_output\n");
+    my @denyArray;
+    debugOutput("**DEBUG: Attempting to get current nginxban.conf");
+    #$curlOutput = `curl -s http:/foo.host.lan/packages/centos/nginx/conf/sysban/blockips.conf -o /tmp/blockips.conf; echo $?`;
+    #if we couldnt, give an error
+    if ( $curlOutput != 0 ){
+	print "\n\nError: could not fetch blockips.conf, trying to work around this... curl exit code: $curlOutput";
+	
+    }
+    else {
+	#read the denyfile into an array
+	debugOutput("**DEBUG: Was able to get blockips.conf. Reading the file into an array");
+	open DENYFILE, "/tmp/nginxban.conf";
+	@denyArray = <DENYFILE>;
+    }
 
 
-	my $result = $es->search(
-		facets  => {
-		ipFacet => {
-			terms => {
-			field => $facetFeild,
-			size => 50,
-			},
-			facet_filterb => { 
-			_type => $type,
-			"\@timestamp" => { 'gte' => $dt_period },
-			},
-		}
-		},
-		);
+}

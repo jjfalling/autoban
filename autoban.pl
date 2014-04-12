@@ -144,15 +144,17 @@ if ($safe) {
 
 
 #TEMP
-#require "./plugins/nginx_es.input";
-#nginx_es_input();
-#require "./plugins/nginx.filter";
-#nginx_filter();
+require "./plugins/nginx_es.input";
+nginx_es_input();
+require "./plugins/nginx.filter";
+nginx_filter();
+require "./plugins/nginx_ban.output";
+nginx_output();
 
-require "./plugins/apache_es.input";
-apache_es_input();
-require "./plugins/apache.filter";
-apache_filter();
+#require "./plugins/apache_es.input";
+#apache_es_input();
+#require "./plugins/apache.filter";
+#apache_filter();
 
 #require "./plugins/nginx_ban.output";
 #nginx_ban();
