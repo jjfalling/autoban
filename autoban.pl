@@ -137,6 +137,8 @@ closedir(DIR);
 
 debugOutput("**DEBUG: found following plugins: @plugins");
 
+#ensure the autoban index exists, if not, throw a warning and create it, exit if we cannot
+
 #TODO, when enabling outputs, obey safe mode
 if ($safe) {
 	print "\nAnd remember this: there is no more important safety rule than to wear these — safety glasses (safe mode is enabled)\n";
@@ -149,7 +151,7 @@ nginx_es_input();
 require "./plugins/nginx.filter";
 nginx_filter();
 require "./plugins/nginx_ban.output";
-nginx_output();
+nginx_ban_output();
 
 #require "./plugins/apache_es.input";
 #apache_es_input();

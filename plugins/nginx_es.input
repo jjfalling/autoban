@@ -21,100 +21,100 @@ my $num_purges;
 
 sub nginx_es_input {
 
-debugOutput("\n**DEBUG: Running nginx_es_input\n");
+    debugOutput("\n**DEBUG: Running nginx_es_input\n");
 
-debugOutput("**DEBUG: Searching for the highest requesting ips");
+    debugOutput("**DEBUG: Searching for the highest requesting ips");
 
 
 
-my $result = $es->search(
-    
-    body  => {
-        facets => {
-           ipFacet => {
-			   terms => {
-		  	      field =>  $autobanConfig->param('nginx-es-input.facetFeild'),
-		  		  size => $autobanConfig->param('nginx-es-input.topIps'),
-	  		 	},
-		        facet_filter => {
-					and => [
-						{
-							term => {
-								_type => $autobanConfig->param('nginx-es-input.logType')
-							}
-						},
-						{
-							range => {
-								'@timestamp' => {
-									gte => $dt_period,
-								}
-							}
-						}
-					]
+    my $result = $es->search(
+	
+	body  => {
+	    facets => {
+		ipFacet => {
+		    terms => {
+			field =>  $autobanConfig->param('nginx-es-input.facetFeild'),
+			size => $autobanConfig->param('nginx-es-input.topIps'),
+		    },
+		    facet_filter => {
+			and => [
+			    {
+				term => {
+				    _type => $autobanConfig->param('nginx-es-input.logType')
 				}
-	  		}
-	  	}
+			    },
+			    {
+				range => {
+				    '@timestamp' => {
+					gte => $dt_period,
+				    }
+				}
+			    }
+			    ]
+		    }
+		}
+	    }
 
-    },
-    #use size=0 to only give the faceted data
-    size => 0
-);
-
-
-debugOutput("**DEBUG: Search took $result->{'took'}ms");
-
-
-# 	my $result = $es->search(
-# 		facets  => {
-# 		ipFacet => {
-# 			terms => {
-# 			field => $facetFeild,
-# 			size => 50,
-# 			},
-# 			facet_filterb => { 
-# 			_type => $type,
-# 			"\@timestamp" => { 'gte' => $dt_period },
-# 			},
-# 		}
-# 		},
-# 		);
+	},
+	#use size=0 to only give the faceted data
+	size => 0
+	);
 
 
-	#my (@bad, $facet);
-	foreach my $res (@{$result->{'facets'}->{'ipFacet'}->{'terms'}}) {
-		next if $res->{'term'} eq '-';
-		$facetedData->{'ip'}->{$res->{'term'}} = $res->{'count'};
-		my $ip = $res->{'term'};
-		$ip =~ s/\.(\d{1,3})$//;
-	}
+    debugOutput("**DEBUG: Search took $result->{'took'}ms");
 
 
+    # 	my $result = $es->search(
+    # 		facets  => {
+    # 		ipFacet => {
+    # 			terms => {
+    # 			field => $facetFeild,
+    # 			size => 50,
+    # 			},
+    # 			facet_filterb => { 
+    # 			_type => $type,
+    # 			"\@timestamp" => { 'gte' => $dt_period },
+    # 			},
+    # 		}
+    # 		},
+    # 		);
 
-	if ($autobanConfig->param("nginx-es-input.internalComparison")){
-		$num_purges = $facetedData->{'ip'}->{'192.168.15.6'};
-	    if ($num_purges == 0){print "Looks like internal comparison has no data, using backup setting\n"; $num_purges = $autobanConfig->param("nginx-es-input.internalComparisonBackupCount");}
-	}
-	
-	#get some data on these ips and their last x requests  
-	gatherBasicIpInfo();
 
-	#now, lets get the more... interesting data...
-	#insepectPerdata();
-
-	#look at ips, and add points against score
-#	debugOutput("**DEBUG: Note: Not listing any crawlers below");
-#	flagForBan();
+    #my (@bad, $facet);
+    foreach my $res (@{$result->{'facets'}->{'ipFacet'}->{'terms'}}) {
+	next if $res->{'term'} eq '-';
+	$facetedData->{'ip'}->{$res->{'term'}} = $res->{'count'};
+	my $ip = $res->{'term'};
+	$ip =~ s/\.(\d{1,3})$//;
+    }
 
 
 
-	
+    if ($autobanConfig->param("nginx-es-input.internalComparison")){
+	$num_purges = $facetedData->{'ip'}->{'192.168.15.6'};
+	if ($num_purges == 0){print "Looks like internal comparison has no data, using backup setting\n"; $num_purges = $autobanConfig->param("nginx-es-input.internalComparisonBackupCount");}
+    }
+    
+    #get some data on these ips and their last x requests  
+    gatherBasicIpInfo();
+
+    #now, lets get the more... interesting data...
+    #insepectPerdata();
+
+    #look at ips, and add points against score
+    #	debugOutput("**DEBUG: Note: Not listing any crawlers below");
+    #	flagForBan();
+
+
+
+    
 
 }
 
 
 
 sub gatherBasicIpInfo {
-	#look at each ip found
+    #look at each ip found
 
     foreach my $ip (sort keys %{$facetedData->{'ip'}}) {
         #make a hash key/val for the current ip
@@ -123,110 +123,110 @@ sub gatherBasicIpInfo {
 
         #possible issue if there is not a min of an empty string in the config file for this option
         if ($autobanConfig->param("nginx-es-input.internalComparison")){
-			my $perc = $num_reqs / $num_purges;
-			my $pretty_perc = sprintf("%.3f", $perc);
-			$pretty_perc *= 100;
-			$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'internalComparison'} = $pretty_perc;
+	    my $perc = $num_reqs / $num_purges;
+	    my $pretty_perc = sprintf("%.3f", $perc);
+	    $pretty_perc *= 100;
+	    $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'internalComparison'} = $pretty_perc;
 
-		}
+	}
 
- 
+	
         #$data->{'nginx-es-input'}->{'ipData'}->{$ip}->$data->{$ip}->{'isCrawler'} = checkForCrawlers($ip);
         $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'hitCount'} = $num_reqs;
         
-		debugOutput("**DEBUG: Inspecting $ip");
+	debugOutput("**DEBUG: Inspecting $ip");
 
-		#temp vars
-		my ($isLoggedIn, $postMethodPercentage, $postPercentage, $badResponseCodePercent, $varyUserAgent, $hasCookie, $hasUserAgent);
-		my $postActionCount = 0;
-		my $tempBadResponseCount = 0; 
-		my $writeUrlCount = 0;
+	#temp vars
+	my ($isLoggedIn, $postMethodPercentage, $postPercentage, $badResponseCodePercent, $varyUserAgent, $hasCookie, $hasUserAgent);
+	my $postActionCount = 0;
+	my $tempBadResponseCount = 0; 
+	my $writeUrlCount = 0;
 
 
 
-my $result2 = $es->search(
-    
-    size => $autobanConfig->param('nginx-es-input.maxNumOfResults'),
-    body  => {
-        filter => {
-			and => [
-				{
-					term => {
-						_type => $autobanConfig->param('nginx-es-input.logType')
-					}
-				},
-				{
-					range => {
-						'@timestamp' => {
-							gte => $dt_period,
-						}
-					}
+	my $result2 = $es->search(
+	    
+	    size => $autobanConfig->param('nginx-es-input.maxNumOfResults'),
+	    body  => {
+		filter => {
+		    and => [
+			{
+			    term => {
+				_type => $autobanConfig->param('nginx-es-input.logType')
+			    }
+			},
+			{
+			    range => {
+				'@timestamp' => {
+				    gte => $dt_period,
 				}
+			    }
+			}
 			]
 		},
-        query => {
-            match => { 
-            	$autobanConfig->param('nginx-es-input.facetFeild') => $ip
+			    query => {
+				match => { 
+				    $autobanConfig->param('nginx-es-input.facetFeild') => $ip
+				}
+
 			}
-
-        }
-    }
-);
+	    }
+	    );
 
 
-debugOutput("**DEBUG: Search took $result2->{'took'}ms");
+	debugOutput("**DEBUG: Search took $result2->{'took'}ms");
 
 
-# 		$result2 = $es->search(
-# 			size => $autobanConfig->param("nginx-es-input.maxNumOfResults"),
-# 			query => {
-# 				remote_address => $ip,
-# 				"\@timestamp" => { 'gte' => $dt_period },
-# 			},
-# 		);
+	# 		$result2 = $es->search(
+	# 			size => $autobanConfig->param("nginx-es-input.maxNumOfResults"),
+	# 			query => {
+	# 				remote_address => $ip,
+	# 				"\@timestamp" => { 'gte' => $dt_period },
+	# 			},
+	# 		);
 
-		#figure out how many results there are and if greater then maxNumOfResults
-		my $total;
-		if ($result2->{'hits'}->{'total'} >= $autobanConfig->param('nginx-es-input.maxNumOfResults')) {
-			$total = $autobanConfig->param('nginx-es-input.maxNumOfResults');
-		}
-		else {
-			$total = $result2->{'hits'}->{'total'};
+	#figure out how many results there are and if greater then maxNumOfResults
+	my $total;
+	if ($result2->{'hits'}->{'total'} >= $autobanConfig->param('nginx-es-input.maxNumOfResults')) {
+	    $total = $autobanConfig->param('nginx-es-input.maxNumOfResults');
+	}
+	else {
+	    $total = $result2->{'hits'}->{'total'};
 
-		}
+	}
 
-		#TODO: add login support (look for item field of $name=$value)
-		#Look at each request for this ip
-		my $i=0;
-		while ($i < $total) {
-				   
-			#get data for each request out.         
-			my $tempData = ($result2->{'hits'}->{'hits'}->[$i]);
+	#TODO: add login support (look for item field of $name=$value)
+	#Look at each request for this ip
+	my $i=0;
+	while ($i < $total) {
+	    
+	    #get data for each request out.         
+	    my $tempData = ($result2->{'hits'}->{'hits'}->[$i]);
 
-			#TODO: make all of this happen in the config 
-			if ($autobanConfig->param("nginx-es-input.cookie")){
-				if ($tempData->{'_source'}->{'cookies'} =~ /$autobanConfig->param('nginx-es-input.cookie')/i){$hasCookie = "true";}
-			}
+	    #TODO: make all of this happen in the config 
+	    if ($autobanConfig->param("nginx-es-input.cookie")){
+		if ($tempData->{'_source'}->{'cookies'} =~ /$autobanConfig->param('nginx-es-input.cookie')/i){$hasCookie = "true";}
+	    }
 
-			if ($tempData->{'_source'}->{'http_user_agent'} ne "-"){$hasUserAgent = "true";}
-			if ($tempData->{'_source'}->{'request_method'} =~ /post/i){$postActionCount++;}
-			if ($tempData->{'_source'}->{'status'} !~ /$autobanConfig->param('nginx-es-input.goodResponseCodes')/i){$tempBadResponseCount++;}
-			if ($tempData->{'_source'}->{'requested_uri'} =~ /$autobanConfig->param('nginx-es-input.writeUrl')/i){$writeUrlCount++;}
-			
-			$i++;
-		}
+	    if ($tempData->{'_source'}->{'http_user_agent'} ne "-"){$hasUserAgent = "true";}
+	    if ($tempData->{'_source'}->{'request_method'} =~ /post/i){$postActionCount++;}
+	    if ($tempData->{'_source'}->{'status'} !~ /$autobanConfig->param('nginx-es-input.goodResponseCodes')/i){$tempBadResponseCount++;}
+	    if ($tempData->{'_source'}->{'requested_uri'} =~ /$autobanConfig->param('nginx-es-input.writeUrl')/i){$writeUrlCount++;}
+	    
+	    $i++;
+	}
 
-		#put final data into hash
-		if ($autobanConfig->param("nginx-es-input.cookie")){
-			$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'hasCookie'} = $hasCookie ||  "false";
-		}
+	#put final data into hash
+	if ($autobanConfig->param("nginx-es-input.cookie")){
+	    $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'hasCookie'} = $hasCookie ||  "false";
+	}
 
-		$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'hasUserAgent'} = $hasUserAgent;
+	$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'hasUserAgent'} = $hasUserAgent;
 
-		$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'postMethodPercentage'} = getPercentage($autobanConfig->param('nginx-es-input.maxNumOfResults'), "$postActionCount");
-		$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'badResponsePercentage'} = getPercentage($autobanConfig->param('nginx-es-input.maxNumOfResults'), "$tempBadResponseCount");
-		$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'} = getPercentage($autobanConfig->param('nginx-es-input.maxNumOfResults'), "$writeUrlCount");
-		$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'isCrawler'} = checkForCrawlers($ip);
+	$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'postMethodPercentage'} = getPercentage($autobanConfig->param('nginx-es-input.maxNumOfResults'), "$postActionCount");
+	$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'badResponsePercentage'} = getPercentage($autobanConfig->param('nginx-es-input.maxNumOfResults'), "$tempBadResponseCount");
+	$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'} = getPercentage($autobanConfig->param('nginx-es-input.maxNumOfResults'), "$writeUrlCount");
+	$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'isCrawler'} = checkForCrawlers($ip);
 
     }
 }
@@ -236,14 +236,14 @@ sub insepectPerdata {
 
     #look through the list of ips, and 
     foreach my $ip (sort keys %{$data}) {
-		
+	
         #skip anything marked as a crawler
         if ($data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'isCrawler'} eq "false" ) {
 
         }
         else {
-			debugOutput("**DEBUG: Skipping $ip as it appears to be a crawler\n");
-        
+	    debugOutput("**DEBUG: Skipping $ip as it appears to be a crawler\n");
+	    
         }
     }
 }
@@ -255,7 +255,7 @@ sub getPercentage {
     my ($first , $second) = (shift, shift);
     if ($second == 0){
         return 0;
-    
+	
     }
     else {
         my $perc = $second / $first;
@@ -280,12 +280,12 @@ sub checkForCrawlers {
     $isp = isp_of_ip($ip) || '-';
 
     #run through the array of crawler names, if there is a match, return true
-        if ($isp =~ /$autobanConfig->param('nginx-filter.crawlers')/i){
-        	debugOutput("**DEBUG: $ip appears to be a crawler");
-        	return "true";
-        }else{
-        	return "false";
-        }
+    if ($isp =~ /$autobanConfig->param('nginx-filter.crawlers')/i){
+	debugOutput("**DEBUG: $ip appears to be a crawler");
+	return "true";
+    }else{
+	return "false";
+    }
     
 }
 
