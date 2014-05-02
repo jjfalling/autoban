@@ -17,7 +17,7 @@ my $crawlers="microsoft|yandex|yahoo|google";
 my $result2;
 my $high = 5;
 my $low = 4;
-my $banTheshold = 10;
+my $banTheshold = 9;
 
 
 sub nginx_ban_output {
@@ -28,30 +28,33 @@ sub nginx_ban_output {
     #we attempt to get the current ban file so we can tell what is a new ban.
     # this was used as a sort of diff for manually updating the nginx file, but I think 
     # i should drop this and just use the ban db 
-    debugOutput("**DEBUG: Attempting to get and read current nginx ban file");
-    $curlOutput = `curl -s http:/foo.host.lan/packages/centos/nginx/conf/sysban/nginxban.conf -o "$autobanConfig->param('nginx-ban-output.location')"; echo $?`;
+    #
+    #debugOutput("**DEBUG: Attempting to get and read current nginx ban file");
+    #$curlOutput = `curl -s http:/foo.host.lan/packages/centos/nginx/conf/sysban/nginxban.conf -o "$autobanConfig->param('nginx-ban-output.location')"; echo $?`;
     #if we couldnt, give an error
-    if ( $curlOutput != 0 ){
-    	print "\n\nError: could not fetch blockips.conf, trying to work around this... curl exit code: $curlOutput";
-    }
+    #if ( $curlOutput != 0 ){
+    #	print "\n\nError: could not fetch blockips.conf, trying to work around this... curl exit code: $curlOutput";
+    #}
 
     #read the denyfile into an array
-    open( my $NGINXDENYFILE, "<", $autobanConfig->param('nginx-ban-output.location') ) || die "ERROR: Can't open nginx ban file: $!\n";
-    @denyArray = <$NGINXDENYFILE>;
+    #open( my $NGINXDENYFILE, "<", $autobanConfig->param('nginx-ban-output.location') ) || die "ERROR: Can't open nginx ban file: $!\n";
+    #@denyArray = <$NGINXDENYFILE>;
 
     
     
     debugOutput("**DEBUG: looping through the ban ips");
 
-    foreach my $ip (sort keys %{$banData}) {
-	#        #strip the trailing comma from the string
-	#        $comment = substr(($banData->{$ip}->{'banComment'}),0,-1);
-	#        $comment = "AutoBan - Score: $banData->{$ip}->{'banScore'} Reason: " . "$comment";
-	
+    foreach my $ip (sort keys %{$data->{'nginx-es-input'}->{'ipData'}}) {
+	#strip the trailing comma from the string
+	$comment = substr(($data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}),0,-1);
+	$comment = "AutoBan - Score: $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} Reason: " . "$comment";
+
 	#if above threshold, ban!
-	#        if ($banData->{$ip}->{'banScore'} >= $banTheshold){
-	# This is where the ban db will come into play. do some sort of query to get all active nginx banned ips and generate ban file
-	#        }
+	if ($data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} >= $banTheshold){
+	    debugOutput("**DEBUG: IP $ip is above ban threshold");
+
+	    # This is where the ban db will come into play. do some sort of query to get all active nginx banned ips and generate ban file
+	}
     }
 
 
