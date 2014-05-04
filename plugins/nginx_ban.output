@@ -39,22 +39,62 @@ sub nginx_ban_output {
     #read the denyfile into an array
     #open( my $NGINXDENYFILE, "<", $autobanConfig->param('nginx-ban-output.location') ) || die "ERROR: Can't open nginx ban file: $!\n";
     #@denyArray = <$NGINXDENYFILE>;
-
-    
     
     debugOutput("**DEBUG: looping through the ban ips");
 
+    my $banCount=0;
     foreach my $ip (sort keys %{$data->{'nginx-es-input'}->{'ipData'}}) {
 	#strip the trailing comma from the string
 	$comment = substr(($data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}),0,-1);
 	$comment = "AutoBan - Score: $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} Reason: " . "$comment";
 
-	#if above threshold, ban!
+	#if above threshold, see if we should ban it
 	if ($data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} >= $banTheshold){
-	    debugOutput("**DEBUG: IP $ip is above ban threshold");
+	    $banCount=1;
+	    debugOutput("**DEBUG: IP $ip is above ban threshold, checking ban status");
 
+	    #plugin: nginx_ban.output
+	    #ip: $ip
+	    #ban_created: [some sane timestamp, in gmt] 
+	    #ban_expires: [some sane timestamp, in gmt] 
+	    #ban_comment: $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}
+
+	    #search for active bans
+	    my $ipBanSearch = $es->search(
+		
+		body  => {
+		    filter => {
+			and => [
+			    {
+				term => {
+				    _type => $autobanConfig->param('nginx-es-input.logType')
+				}
+			    },
+			    {
+				range => {
+				    '@timestamp' => {
+					gte => $dt_period,
+				    }
+				}
+			    }
+			    ]
+		    },
+				query => {
+				    match => { 
+					ip => $ip
+				    }
+
+			    }
+		},
+		sort
+		);
+	    
 	    # This is where the ban db will come into play. do some sort of query to get all active nginx banned ips and generate ban file
 	}
+    }
+
+    if ($banCount == 0){
+	debugOutput("**DEBUG: I found nothing to ban on this run");
     }
 
 

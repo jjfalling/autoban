@@ -32,8 +32,8 @@ use File::NFSLock;
 
 #get offical elasticsearch module @ https://metacpan.org/pod/Search::Elasticsearch
 use Search::Elasticsearch;
-die "The Elasticsearch module must be >= v1.10! You have v$Search::Elasticsearch::VERSION\n\n"
-    unless $Search::Elasticsearch::VERSION >= 1.10;
+die "The Elasticsearch module must be >= v1.11! You have v$Search::Elasticsearch::VERSION\n\n"
+    unless $Search::Elasticsearch::VERSION >= 1.11;
 
 
 
@@ -83,9 +83,6 @@ unless (-e $configFile) {
 
 #this needs to not be a global....
 our $autobanConfig = new Config::Simple(filename=>"$configFile");
-
-#print Dumper($config->{"_DATA"}->{"autoban"});
-#print $autobanConfig->param("autoban.mysqlHost");
 
 
 print "\n\n";
@@ -138,6 +135,20 @@ closedir(DIR);
 debugOutput("**DEBUG: found following plugins: @plugins");
 
 #ensure the autoban index exists, if not, throw a warning and create it, exit if we cannot
+#$es->indices->create(index=> $autobanConfig->param('autoban.esNodes'));
+my $autobanIndexStatus = $es->indices->exists(
+    index   => $autobanConfig->param('autoban.esAutobanIndex')
+);
+unless ($autobanIndexStatus) {
+  print "WARNING: autboan's index (", $autobanConfig->param('autoban.esAutobanIndex'), ") was not found. Creating it.\n";
+  die "ERROR: could not create autoban index..." unless $es->indices->create(index=> $autobanConfig->param('autoban.esAutobanIndex'));
+  debugOutput("**DEBUG: Autoban index created");
+}
+else {
+  debugOutput("**DEBUG: Autoban index exists");
+}
+
+
 
 #TODO, when enabling outputs, obey safe mode
 if ($safe) {
