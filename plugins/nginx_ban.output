@@ -48,6 +48,12 @@ sub nginx_ban_output {
 	$comment = substr(($data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}),0,-1);
 	$comment = "AutoBan - Score: $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} Reason: " . "$comment";
 
+	#get current GMT date in format YYYYMMDDHHMM, as an int
+	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = gmtime();
+	$year=$year+1900;
+	my $currentDateTime = sprintf("%04d%02d%02d%02d%02d", $year, $mon, $mday, $hour, $min);
+	$currentDateTime=int($currentDateTime);
+	
 	#if above threshold, see if we should ban it
 	if ($data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} >= $banTheshold){
 	    $banCount=1;
@@ -59,9 +65,10 @@ sub nginx_ban_output {
 	    #ban_expires: [some sane timestamp, in gmt] 
 	    #ban_comment: $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}
 
+	    # This is where the ban db will come into play. do some sort of query to get all active nginx banned ips and generate ban file
 	    #search for active bans
 	    my $ipBanSearch = $es->search(
-		
+		index => $autobanConfig->param('autoban.esAutobanIndex'),
 		body  => {
 		    filter => {
 			and => [
@@ -72,8 +79,8 @@ sub nginx_ban_output {
 			    },
 			    {
 				range => {
-				    '@timestamp' => {
-					gte => $dt_period,
+				    'ban_expires' => {
+					gte => $currentDateTime,
 				    }
 				}
 			    }
@@ -85,11 +92,45 @@ sub nginx_ban_output {
 				    }
 
 			    }
-		},
-		sort
+		}
 		);
+	    #look at number of bans for the current ip
+	    if ($ipBanSearch->{'hits'}->{'total'} == 0){
+		debugOutput("**DEBUG: Found no active bans for $ip, adding one");
+
+		#create ban since there one does not exist for this ip
+		my $ban_expires = $currentDateTime+$autobanConfig->param('nginx-ban-output.banLength');
+		    		
+		$es->index(
+		    index => $autobanConfig->param('autoban.esAutobanIndex'),
+		    type => $autobanConfig->param('nginx-es-input.logType'),
+		    body => {
+			ip => $ip,
+			ban_created => $currentDateTime,
+			ban_expires => $ban_expires,
+			ban_comment => "$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}"
+		    }
+		    );
+		
+
+
+	    }
+	    elsif ($ipBanSearch->{'hits'}->{'total'} == 1 ){
+		debugOutput("**DEBUG: Found one active ban for $ip");
+		#we do nothing here since the ban is already active. 
+	    }
+	    else {
+		print "\nWARNING: more then one active ban exists for $ip\n";
+		#TODO: figure out how to handle this
+	    }
+
+
+	   
 	    
-	    # This is where the ban db will come into play. do some sort of query to get all active nginx banned ips and generate ban file
+
+	   #if the search returned no hits, then we need to create a new ban record
+
+
 	}
     }
 
