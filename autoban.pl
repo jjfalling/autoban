@@ -109,7 +109,7 @@ our $data;
 our $es = Search::Elasticsearch->new(
 	cxn_pool => $autobanConfig->param('autoban.cnx_pool'),
 	nodes => [$autobanConfig->param('autoban.esNodes')],
-	#trace_to => 'Stderr',
+        #trace_to => 'Stderr',
 	) || die "Cannot create new es instance: \$es\n";
 
 
@@ -134,6 +134,7 @@ closedir(DIR);
 
 debugOutput("**DEBUG: found following plugins: @plugins");
 
+#TODO: when creating index, ensure autoban template exists and apply if not
 #ensure the autoban index exists, if not, throw a warning and create it, exit if we cannot
 #$es->indices->create(index=> $autobanConfig->param('autoban.esNodes'));
 my $autobanIndexStatus = $es->indices->exists(

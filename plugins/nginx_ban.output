@@ -42,17 +42,19 @@ sub nginx_ban_output {
     
     debugOutput("**DEBUG: looping through the ban ips");
 
+
+    #get current GMT date in format YYYYMMDDHHMM, as an int
+    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = gmtime();
+    $year=$year+1900;
+    my $currentDateTime = sprintf("%04d%02d%02d%02d%02d", $year, $mon, $mday, $hour, $min);
+    $currentDateTime=int($currentDateTime);
+
     my $banCount=0;
     foreach my $ip (sort keys %{$data->{'nginx-es-input'}->{'ipData'}}) {
 	#strip the trailing comma from the string
 	$comment = substr(($data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}),0,-1);
 	$comment = "AutoBan - Score: $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} Reason: " . "$comment";
 
-	#get current GMT date in format YYYYMMDDHHMM, as an int
-	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = gmtime();
-	$year=$year+1900;
-	my $currentDateTime = sprintf("%04d%02d%02d%02d%02d", $year, $mon, $mday, $hour, $min);
-	$currentDateTime=int($currentDateTime);
 	
 	#if above threshold, see if we should ban it
 	if ($data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} >= $banTheshold){
@@ -94,13 +96,16 @@ sub nginx_ban_output {
 			    }
 		}
 		);
+	    debugOutput("**DEBUG: Search took $ipBanSearch->{'took'}ms");
+
 	    #look at number of bans for the current ip
 	    if ($ipBanSearch->{'hits'}->{'total'} == 0){
+		#if the search returned no hits, then we need to create a new ban record
 		debugOutput("**DEBUG: Found no active bans for $ip, adding one");
 
 		#create ban since there one does not exist for this ip
 		my $ban_expires = $currentDateTime+$autobanConfig->param('nginx-ban-output.banLength');
-		    		
+		
 		$es->index(
 		    index => $autobanConfig->param('autoban.esAutobanIndex'),
 		    type => $autobanConfig->param('nginx-es-input.logType'),
@@ -111,31 +116,99 @@ sub nginx_ban_output {
 			ban_comment => "$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}"
 		    }
 		    );
-		
-
-
-	    }
+      	    }
 	    elsif ($ipBanSearch->{'hits'}->{'total'} == 1 ){
 		debugOutput("**DEBUG: Found one active ban for $ip");
 		#we do nothing here since the ban is already active. 
 	    }
 	    else {
+		debugOutput("**DEBUG: found multiple bans for $ip, not sure what to do with this...");
 		print "\nWARNING: more then one active ban exists for $ip\n";
 		#TODO: figure out how to handle this
-	    }
-
-
-	   
-	    
-
-	   #if the search returned no hits, then we need to create a new ban record
-
+	    }	    
 
 	}
     }
 
     if ($banCount == 0){
 	debugOutput("**DEBUG: I found nothing to ban on this run");
+    }
+    else {
+	#run a facted search on active bans by ip. and sort for good measure. 
+      	debugOutput("**DEBUG: Getting all active banned ips");
+
+	#adding a sleep to work around index lag
+	sleep 2;
+
+	my $activeBanResult = $es->search(
+	    index => $autobanConfig->param('autoban.esAutobanIndex'),
+	    body  => {
+		facets => {
+		    ipFacet => {
+			terms => {
+			    field => "ip.raw"
+			},
+				facet_filter => {
+				    and => [
+					{
+					    term => {
+						_type => $autobanConfig->param('nginx-es-input.logType')
+					    }
+					},
+					{
+					    range => {
+						'ban_expires' => {
+						    gte => $currentDateTime,
+						}
+					    }
+					}
+					]
+			    }
+		    }
+		}
+
+	    },
+	    #use size=0 to only give the faceted data
+	    size => 0
+	    );
+	if ( $activeBanResult->{'facets'}->{'ipFacet'}->{'total'} == 0){
+	    debugOutput("**DEBUG: Search took $activeBanResult->{'took'}ms, and returned no banned ips. Skipping nginx ban file creation.");
+	}
+	else {
+	    debugOutput("**DEBUG: Search took $activeBanResult->{'took'}ms, returned $activeBanResult->{'facets'}->{'ipFacet'}->{'total'} banned ips");
+	    
+	    #go through the returned data and build the nginx ban list
+
+	    #my (@bad, $facet);
+	    #    foreach my $res (@{$result->{'facets'}->{'ipFacet'}->{'terms'}}) {
+	    #	next if $res->{'term'} eq '-';
+	    #	$facetedData->{'ip'}->{$res->{'term'}} = $res->{'count'};
+	    #	my $ip = $res->{'term'};
+	    #	$ip =~ s/\.(\d{1,3})$//;
+	    #    }
+	    #foreach my $ip (sort keys %{$facetedData->{'ip'}}) {}
+
+	    debugOutput("**DEBUG: attempting to open nginx ban file for writing");
+
+
+	    unless (-e $autobanConfig->param('nginx-ban-output.location')) {
+		print "WARNING: nginx ban file ". $autobanConfig->param('nginx-ban-output.location') ." does not exist, attempting to create\n";
+	    }
+
+	    unless (open NGINXBANFILE, ">", $autobanConfig->param('nginx-ban-output.location')) {
+		print "ERROR: Cannot write to nginx ban file ". $autobanConfig->param('nginx-ban-output.location') . ": $!\n";
+	    }
+	    else {
+		
+		foreach my $banedIps (@{$activeBanResult->{'facets'}->{'ipFacet'}->{'terms'}}) {
+		    next if $banedIps->{'term'} eq '-';
+		    debugOutput("**DEBUG: adding $banedIps->{'term'} to nginx ban file");
+		    print NGINXBANFILE "deny $banedIps->{'term'};\n";
+		}
+		debugOutput("**DEBUG: finished writing to nginx ban file, closing file");
+		close NGINXBANFILE;
+	    }
+	}
     }
 
 

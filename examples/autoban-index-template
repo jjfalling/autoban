@@ -1,0 +1,37 @@
+{
+  "autoban" : {
+    "order" : 0,
+    "template" : "autoban-int",
+    "settings" : {
+      "index.analysis.analyzer.default.stopwords" : "_none_",
+      "index.refresh_interval" : "5s",
+      "index.analysis.analyzer.default.type" : "standard"
+    },
+    "mappings" : {
+      "_default_" : {
+        "dynamic_templates" : [ {
+          "string_fields" : {
+            "mapping" : {
+              "type" : "multi_field",
+              "fields" : {
+                "raw" : {
+                  "index" : "not_analyzed",
+                  "ignore_above" : 256,
+                  "type" : "string"
+                },
+                "{name}" : {
+                  "index" : "analyzed",
+                  "omit_norms" : true,
+                  "type" : "string"
+                }
+              }
+            },
+            "match" : "*",
+            "match_mapping_type" : "string"
+          }
+        } ]
+      }
+    },
+    "aliases" : { }
+  }
+}

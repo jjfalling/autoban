@@ -27,7 +27,7 @@ debugOutput("**DEBUG: Searching for the highest requesting ips");
 
 
 my $result = $es->search(
-    
+    index => $autobanConfig->param('autoban.logstashIndex'),
     body  => {
         facets => {
            ipFacet => {
@@ -144,7 +144,7 @@ sub gatherBasicIpInfo {
 
 
 my $result2 = $es->search(
-    
+    index => $autobanConfig->param('autoban.logstashIndex'),
     size => $autobanConfig->param('apache-es-input.maxNumOfResults'),
     body  => {
         filter => {
