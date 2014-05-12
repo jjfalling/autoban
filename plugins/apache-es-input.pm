@@ -95,7 +95,7 @@ debugOutput("**DEBUG: Search took $result->{'took'}ms");
 	}
 	
 	#get some data on these ips and their last x requests  
-	gatherBasicIpInfo();
+	gatherBasicIpInfoApache();
 
 	#now, lets get the more... interesting data...
 	#insepectPerdata();
@@ -112,7 +112,7 @@ debugOutput("**DEBUG: Search took $result->{'took'}ms");
 
 
 
-sub gatherBasicIpInfo {
+sub gatherBasicIpInfoApache {
 	#look at each ip found
 
     foreach my $ip (sort keys %{$facetedData->{'ip'}}) {
@@ -225,16 +225,16 @@ debugOutput("**DEBUG: Search took $result2->{'took'}ms");
 
 		$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'hasUserAgent'} = $hasUserAgent;
 
-		$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'postMethodPercentage'} = getPercentage($autobanConfig->param('apache-es-input.maxNumOfResults'), "$postActionCount");
-		$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'badResponsePercentage'} = getPercentage($autobanConfig->param('apache-es-input.maxNumOfResults'), "$tempBadResponseCount");
-		$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'} = getPercentage($autobanConfig->param('apache-es-input.maxNumOfResults'), "$writeUrlCount");
-		$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'isCrawler'} = checkForCrawlers($ip);
+		$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'postMethodPercentage'} = getPercentageApache($autobanConfig->param('apache-es-input.maxNumOfResults'), "$postActionCount");
+		$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'badResponsePercentage'} = getPercentageApache($autobanConfig->param('apache-es-input.maxNumOfResults'), "$tempBadResponseCount");
+		$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'} = getPercentageApache($autobanConfig->param('apache-es-input.maxNumOfResults'), "$writeUrlCount");
+		$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'isCrawler'} = checkForCrawlersApache($ip);
 
     }
 }
 
 
-sub insepectPerdata {
+sub insepectPerdataApache {
 
     #look through the list of ips, and 
     foreach my $ip (sort keys %{$data}) {
@@ -252,7 +252,7 @@ sub insepectPerdata {
 
 
 
-sub getPercentage {
+sub getPercentageApache {
 
     my ($first , $second) = (shift, shift);
     if ($second == 0){
@@ -269,7 +269,7 @@ sub getPercentage {
 }
 
 
-sub checkForCrawlers {
+sub checkForCrawlersApache {
     my $ip = shift;
     return '' unless $ip;
     #ipv6 regex from http://download.dartware.com/thirdparty/test-ipv6-regex.pl
@@ -279,7 +279,7 @@ sub checkForCrawlers {
         $hostName =~ s/.*pointer //;
         return $hostName;
     }
-    $isp = isp_of_ip($ip) || '-';
+    $isp = isp_of_ipApache($ip) || '-';
 
     #run through the array of crawler names, if there is a match, return true
         if ($isp =~ /$autobanConfig->param('apache-filter.crawlers')/i){
@@ -291,7 +291,7 @@ sub checkForCrawlers {
     
 }
 
-sub isp_of_ip {
+sub isp_of_ipApache {
     my $ip = shift;
     my $gi = Geo::IP::PurePerl->open($autobanConfig->param('nginx-filter.geoOrgDatabase'));
     return $gi->isp_by_addr($ip);

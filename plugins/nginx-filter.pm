@@ -48,7 +48,7 @@ sub nginxFlagForBan() {
 
 			#$isp = isp_of_ip($ip) || '-';
 			$comment = substr(($data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}),0,-1);
-			$comment = "nginx.filter - Score: $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} Reason: " . "$comment";
+			$comment = "nginx-filter - Score: $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} Reason: " . "$comment";
 			debugOutput("**DEBUG: IP: $ip COMMENT: $comment ");
 	
         }

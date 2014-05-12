@@ -165,16 +165,11 @@ require "./plugins/nginx-es-input.pm";
 nginx_es_input();
 require "./plugins/nginx-filter.pm";
 nginx_filter();
+
 require "./plugins/nginx-ban-output.pm";
 nginx_ban_output();
 
-#require "./plugins/apache_es.input";
-#apache_es_input();
-#require "./plugins/apache.filter";
-#apache_filter();
 
-#require "./plugins/nginx_ban.output";
-#nginx_ban();
 
 #if debuging is enabled, give raw data. TEMP
 #if ($debug) {
