@@ -32,7 +32,7 @@ use File::NFSLock;
 
 #get offical elasticsearch module @ https://metacpan.org/pod/Search::Elasticsearch
 use Search::Elasticsearch;
-die "The Elasticsearch module must be >= v1.11! You have v$Search::Elasticsearch::VERSION\n\n"
+die "The Search::Elasticsearch module must be >= v1.11! You have v$Search::Elasticsearch::VERSION\n\n"
     unless $Search::Elasticsearch::VERSION >= 1.11;
 
 
