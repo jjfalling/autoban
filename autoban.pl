@@ -74,7 +74,6 @@ unless ($foreground) {
 }
 
 
-#TODO: switch to yaml? Maybe modular configs?
 #check if config file exists, and if not exit
 unless (-e $configFile) {
         print "\nERROR: $configFile was found! Please see the man page!\n";
@@ -122,10 +121,9 @@ opendir (DIR, "./plugins") or die $!;
 while (my $file = readdir(DIR)) {
 
 	# look for plugins
-	next unless ($file =~ m/.*\.input|.output|.filter/);
+	next unless ($file =~ m/.*\.pm/);
 	my $value = $file;
 	my $key = $file;
-	#$key =~ s/.input|.filter|.output//;
 	push (@plugins, "$value");
 
 }
@@ -158,11 +156,16 @@ if ($safe) {
 
 
 #TEMP
-require "./plugins/nginx_es.input";
+require "./plugins/apache-es-input.pm";
+apache_es_input();
+require "./plugins/apache-filter.pm";
+apache_filter();
+
+require "./plugins/nginx-es-input.pm";
 nginx_es_input();
-require "./plugins/nginx.filter";
+require "./plugins/nginx-filter.pm";
 nginx_filter();
-require "./plugins/nginx_ban.output";
+require "./plugins/nginx-ban-output.pm";
 nginx_ban_output();
 
 #require "./plugins/apache_es.input";
@@ -174,9 +177,9 @@ nginx_ban_output();
 #nginx_ban();
 
 #if debuging is enabled, give raw data. TEMP
-if ($debug) {
-	print Dumper($data);
-}
+#if ($debug) {
+#	print Dumper($data);
+#}
 
 
 

@@ -207,12 +207,24 @@ sub nginx_ban_output {
 		}
 		debugOutput("**DEBUG: finished writing to nginx ban file, closing file");
 		close NGINXBANFILE;
+
+		#see if user provided a post run script and if so, run it. If not, then we just ignore this
+		unless ($autobanConfig->param("nginx-ban-output.postRunScript")) {
+		    debugOutput("**DEBUG: no post script provided, skipping");
+		}
+		else {
+		    debugOutput("**DEBUG: post script provided, running it");
+		    my $tmpPostScript = $autobanConfig->param('nginx-ban-output.postRunScript');
+		    my $postScript = `$tmpPostScript`;
+		    my $postScriptExit = $?;
+		    unless ( $postScriptExit == 0) { print "Error running post script " . $autobanConfig->param('nginx-ban-output.postRunScript') .": exit code: $postScriptExit. $postScript\n";}
+		    debugOutput("**DEBUG: post script output: $postScript");
+		}
+
 	    }
 	}
     }
 
-
-    exit;
 }
 
 #required to import
