@@ -250,6 +250,6 @@ Display program version
 
 =head1 CHANGELOG
 
-B<0.1> 12-10-2013 Initial release of sanitized code with some serious changes.
+B<0.1> 12-10-2013 Initial release. All other releases until there is a stable product will be under this version. 
 
 =cut
