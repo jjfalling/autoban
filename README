@@ -29,7 +29,10 @@ Inputs            →           Filters        →       Outputs
                               [geoip]                [Apache deny?]
 	
 
-							
+						
+More info may be found here: https://github.com/jjfalling/autoban/wiki	
+
+
 								
 You will need to use the logstash template for some fields to work correctly with this (such as anything with IPv6 IPs). 
 
