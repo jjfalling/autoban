@@ -25,21 +25,6 @@ sub nginx_ban_output {
     my @denyArray;
     my $curlOutput=1;
 
-    #we attempt to get the current ban file so we can tell what is a new ban.
-    # this was used as a sort of diff for manually updating the nginx file, but I think 
-    # i should drop this and just use the ban db 
-    #
-    #debugOutput("**DEBUG: Attempting to get and read current nginx ban file");
-    #$curlOutput = `curl -s http:/foo.host.lan/packages/centos/nginx/conf/sysban/nginxban.conf -o "$autobanConfig->param('nginx-ban-output.location')"; echo $?`;
-    #if we couldnt, give an error
-    #if ( $curlOutput != 0 ){
-    #	print "\n\nError: could not fetch blockips.conf, trying to work around this... curl exit code: $curlOutput";
-    #}
-
-    #read the denyfile into an array
-    #open( my $NGINXDENYFILE, "<", $autobanConfig->param('nginx-ban-output.location') ) || die "ERROR: Can't open nginx ban file: $!\n";
-    #@denyArray = <$NGINXDENYFILE>;
-    
     debugOutput("**DEBUG: looping through the ban ips");
 
 
@@ -50,14 +35,19 @@ sub nginx_ban_output {
     $currentDateTime=int($currentDateTime);
 
     my $banCount=0;
-    foreach my $ip (sort keys %{$data->{'nginx-es-input'}->{'ipData'}}) {
+    
+    #check to see what inputs we are looking at
+    foreach my $plugin ($autobanConfig->param('nginx-ban-output.plugins')){
+	debugOutput("**DEBUG: looking at input plugin: $plugin");
+
+    foreach my $ip (sort keys %{$data->{$plugin}->{'ipData'}}) {
 	#strip the trailing comma from the string
-	$comment = substr(($data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}),0,-1);
-	$comment = "AutoBan - Score: $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} Reason: " . "$comment";
+	$comment = substr(($data->{$plugin}->{'ipData'}->{$ip}->{'banComment'}),0,-1);
+	$comment = "AutoBan - Score: $data->{$plugin}->{'ipData'}->{$ip}->{'banScore'} Reason: " . "$comment";
 
 	
 	#if above threshold, see if we should ban it
-	if ($data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} >= $banTheshold){
+	if ($data->{$plugin}->{'ipData'}->{$ip}->{'banScore'} >= $banTheshold){
 	    $banCount=1;
 	    debugOutput("**DEBUG: IP $ip is above ban threshold, checking ban status");
 
@@ -76,7 +66,7 @@ sub nginx_ban_output {
 			and => [
 			    {
 				term => {
-				    _type => $autobanConfig->param('nginx-es-input.logType')
+				    _type => $autobanConfig->param("$plugin.logType")
 				}
 			    },
 			    {
@@ -108,12 +98,12 @@ sub nginx_ban_output {
 		
 		$es->index(
 		    index => $autobanConfig->param('autoban.esAutobanIndex'),
-		    type => $autobanConfig->param('nginx-es-input.logType'),
+		    type => $autobanConfig->param($plugin.logType),
 		    body => {
 			ip => $ip,
 			ban_created => $currentDateTime,
 			ban_expires => $ban_expires,
-			ban_comment => "$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}"
+			ban_comment => "$data->{$plugin}->{'ipData'}->{$ip}->{'banComment'}"
 		    }
 		    );
       	    }
@@ -129,11 +119,11 @@ sub nginx_ban_output {
 
 	}
     }
+    }
 
     if ($banCount == 0){
-	debugOutput("**DEBUG: I found nothing to ban on this run");
+	debugOutput("**DEBUG: I found nothing new to ban on this run");
     }
-    else {
 	#run a facted search on active bans by ip. and sort for good measure. 
       	debugOutput("**DEBUG: Getting all active banned ips");
 
@@ -152,7 +142,7 @@ sub nginx_ban_output {
 				    and => [
 					{
 					    term => {
-						_type => $autobanConfig->param('nginx-es-input.logType')
+						_type => $autobanConfig->param("$plugin.logType")
 					    }
 					},
 					{
@@ -171,10 +161,6 @@ sub nginx_ban_output {
 	    #use size=0 to only give the faceted data
 	    size => 0
 	    );
-	if ( $activeBanResult->{'facets'}->{'ipFacet'}->{'total'} == 0){
-	    debugOutput("**DEBUG: Search took $activeBanResult->{'took'}ms, and returned no banned ips. Skipping nginx ban file creation.");
-	}
-	else {
 	    debugOutput("**DEBUG: Search took $activeBanResult->{'took'}ms, returned $activeBanResult->{'facets'}->{'ipFacet'}->{'total'} banned ips");
 	    
 	    #go through the returned data and build the nginx ban list
@@ -221,9 +207,7 @@ sub nginx_ban_output {
 		    debugOutput("**DEBUG: post script output: $postScript");
 		}
 
-	    }
 	}
-    }
 
 }
 
