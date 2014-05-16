@@ -52,14 +52,9 @@ sub nginx_ban_output {
 		$banCount=1;
 		debugOutput("**DEBUG: IP $ip is above ban threshold, checking ban status");
 
-		#plugin: nginx_ban.output
-		#ip: $ip
-		#ban_created: [some sane timestamp, in gmt] 
-		#ban_expires: [some sane timestamp, in gmt] 
-		#ban_comment: $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}
 
 		# This is where the ban db will come into play. do some sort of query to get all active nginx banned ips and generate ban file.
-		#This used to set the type to the input plugin name, but this seemed silly. 
+		#This used to set the type to the input plugin name, but this seemed silly. instead we use this plugin name and tag with the input
 		#search for active bans
 		my $ipBanSearch = $es->search(
 		    index => $autobanConfig->param('autoban.esAutobanIndex'),
@@ -135,8 +130,8 @@ sub nginx_ban_output {
     #run a facted search on active bans by ip. and sort for good measure. 
     debugOutput("**DEBUG: Getting all active banned ips");
 
-    #adding a sleep to try to work around index lag
-    sleep 2;
+    #adding a sleep to try to work around newly added data not showing up in the search. 
+    sleep 5;
 
     my $activeBanResult = $es->search(
 	index => $autobanConfig->param('autoban.esAutobanIndex'),
