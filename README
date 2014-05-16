@@ -33,7 +33,7 @@ Inputs            →           Filters        →       Outputs
 								
 You will need to use the logstash template for some fields to work correctly with this (such as anything with IPv6 IPs). 
 
-Developed on ES version 1.1.0, OpenSUSUE 13.1, and Perl 5.18
+Developed on ES version 1.1.1 (or usually the lastest release), OpenSUSUE 13.1, Perl 5.18, and Search::Elasticsearch 1.12 or higher
 
 
 Original version and concept developed in collaboration with Kurt Hurtado (https://github.com/kurtado)
