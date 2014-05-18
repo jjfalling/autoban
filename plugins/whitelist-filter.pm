@@ -1,22 +1,40 @@
 #whitelist filter module
-#this will more then likely be used within other modules. for the sake of effeciancy it should probally be used as early on as possible
 
-#each whitelist item should have the ip or subnet and the module(s) that it should be whitelisted in
+#this filter will REMOVE matched ips from all of the plugin data to keep them from being blocked. It does not remove active bans from the db.
+#this plugin should be the first filter to run after all inputs have finished. 
 
-#allow both single ip and cdir notation
-sub whitelist.filter {
-	use NetAddr::IP;
+sub whitelist_filter {
+    debugOutput("\n**DEBUG: Running whitelist_filter\n");
+
+    use NetAddr::IP;
 
 
-	#you can do either cdir notation, range (x.x.x.x-x.x.x.x), or single ips
-        if ($ip->within(new NetAddr::IP "192.168.15.0/24")) {
+    #go though each plugin
+    foreach my $currentPlugin (keys %{$data}) {
 
-		debugOutput("**DEBUG: $ip is in whitelist");
+	debugOutput("**DEBUG: Looking at plugin data for: $currentPlugin");
+
+	#look at each ip address in the current plugin
+	foreach my $currentIp (keys %{$data->{$currentPlugin}->{'ipData'}}) {
+
+	    debugOutput("**DEBUG: Checking $currentIp");
+	    my $ipAddr = NetAddr::IP->new($currentIp);
+
+	    #check if current ip is in any whitelist subnet
+	    foreach my $currentWhitelistItem ($autobanConfig->param('whitelist-filter.whitelistips')) {
+
+		my $network = NetAddr::IP->new($currentWhitelistItem);
+		if ($ipAddr->within($network)) {
+
+		    #ip is in whitelist, remove it from the current plugin's data set and move on to next ip
+		    debugOutput("**DEBUG: $currentIp is in whitelist, removing from data set");
+		    delete $data->{$currentPlugin}->{'ipData'}->{$currentIp};
+		    last;
+
+		}
+	    }
 	}
-
+    }
 }
-
-
-
 
 1;

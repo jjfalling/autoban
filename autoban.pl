@@ -158,16 +158,20 @@ if ($safe) {
 #TEMP
 require "./plugins/apache-es-input.pm";
 apache_es_input();
-require "./plugins/apache-filter.pm";
-apache_filter();
-
 require "./plugins/nginx-es-input.pm";
 nginx_es_input();
+
+require "./plugins/whitelist-filter.pm";
+whitelist_filter();
+
+require "./plugins/apache-filter.pm";
+apache_filter();
 require "./plugins/nginx-filter.pm";
 nginx_filter();
 
 require "./plugins/nginx-ban-output.pm";
 nginx_ban_output();
+
 
 
 
