@@ -4,7 +4,7 @@
 #*   Autoban                                                                *
 #*   Realtime attack and abuse defence and intrusion prevention             *
 #*                                                                          *
-#*   Copyright (C) 2013 by Jeremy Falling except where noted.               *
+#*   Copyright (C) 2014 by Jeremy Falling except where noted.               *
 #*                                                                          *
 #*   This program is free software: you can redistribute it and/or modify   *
 #*   it under the terms of the GNU General Public License as published by   *

@@ -8,35 +8,17 @@ Because the world needs more opensource DoS/DDoS mitigation and protection
 
 
 NOTE: This project is currently pre-alpha and the code will drastically change and I more then likely will push broken code.
-The original version of autoban was developed at one of the internet's largest websites in order to block abuse and attacks that caused downtime. 
 
+
+The original version of autoban was developed at one of the internet's largest websites in order to block abuse and attacks that caused downtime. This is an attempt to rewrite that project and opensource it. 
 Autoban works by analyzing logs stored in elasticsearch against filters and rules then generating ban or block entries.
 
 Inputs gather data about ip addresses
 Filters determine an action to take based upon the data from inputs
 Outputs take an action based upon a filter
-
-
-
-The current design is as follows (? denotes proposed and not yet created or designed):
-
-
-Inputs            →           Filters        →       Outputs
-[Nginx logs from ES]          [Whitelist]            [Nginx ban list]
-[Apache logs from ES]         [Allow Rules]          [PfSense ip blocks?]
-[Varnish logs from ES?]       [Blacklist?]           [Hosts.deny?]
-[SSH logs from ES?]           [Block Rules]          [Iptables?]   
-                              [geoip]                [Apache deny?]
 	
 
-						
-More info may be found here: https://github.com/jjfalling/autoban/wiki	
-
-
-								
-You will need to use the logstash template for some fields to work correctly with this (such as anything with IPv6 IPs). 
-
-Developed on ES version 1.1.1 (or usually the lastest release), OpenSUSUE 13.1, Perl 5.18, and Search::Elasticsearch 1.12 or higher
+Kindly see the wiki for more information: https://github.com/jjfalling/autoban/wiki
 
 
 Original version and concept developed in collaboration with Kurt Hurtado (https://github.com/kurtado)
