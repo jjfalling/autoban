@@ -1,4 +1,4 @@
-#TODO: move away from depending on the org db.
+#TODO: move away from depending on the org db and allow it to be an optional addon?
 #TODO: add geoip2 omni support?
 
 use Geo::IP::PurePerl;
