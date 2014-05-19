@@ -29,16 +29,18 @@ use Pod::Usage;
 use Getopt::Long;
 use Fcntl qw(LOCK_EX LOCK_NB);
 use File::NFSLock;
+use Cwd 'getcwd';
 
 #get offical elasticsearch module @ https://metacpan.org/pod/Search::Elasticsearch
 use Search::Elasticsearch;
 die "The Search::Elasticsearch module must be >= v1.11! You have v$Search::Elasticsearch::VERSION\n\n"
     unless $Search::Elasticsearch::VERSION >= 1.11;
 
-
+#get our current working dir
+my $autobanCWD = getcwd($0);
 
 #Define config file
-my $configFile = "autoban.cfg";
+my $configFile = "$autobanCWD/autoban.cfg";
 
 #define program version
 my $autobanVersion = "0.0.1";
@@ -50,19 +52,19 @@ my @plugins;
 #TODO: fix whole debug vs verbose thing. 
 Getopt::Long::Configure('bundling');
 GetOptions
-        ('h|help|?' => \$help, man => \$man,
-         'f|foreground' => \$foreground,
-         "d|debug" => \$debug,
-         "V|verbose" => \$verbose,
-         "v|version" => \$version,
-         "s|safe" => \$safe) or pod2usage(2);
+    ('h|help|?' => \$help, man => \$man,
+     'f|foreground' => \$foreground,
+     "d|debug" => \$debug,
+     "V|verbose" => \$verbose,
+     "v|version" => \$version,
+     "s|safe" => \$safe) or pod2usage(2);
 
 pod2usage(1) if $help;
 pod2usage(-exitval => 0, -verbose => 2) if $man;
 
 if ($version) {
-	print "autoban $autobanVersion\n";
-	exit;
+    print "autoban $autobanVersion\n";
+    exit;
 }
 
 # Before we do anything else, try to get an exclusive lock
@@ -70,14 +72,14 @@ my $lock = File::NFSLock->new($0, LOCK_EX|LOCK_NB);
 
 #unless we are running in the foreground, die if there is another copy
 unless ($foreground) {
-	die "\nERROR: I am already running and I will not run another demonized copy!\nTo run manually while the daemon is running, give the foreground flag. See help or the man page\n\n" unless $lock;
+    die "\nERROR: I am already running and I will not run another demonized copy!\nTo run manually while the daemon is running, give the foreground flag. See help or the man page\n\n" unless $lock;
 }
 
 
 #check if config file exists, and if not exit
 unless (-e $configFile) {
-        print "\nERROR: $configFile was found! Please see the man page!\n";
-		exit 1;
+    print "\nERROR: $configFile was found! Please see the man page!\n";
+    exit 1;
 }
 
 #this needs to not be a global....
@@ -91,10 +93,10 @@ debugOutput("\n**DEBUG: Debugging enabled");
 
 #check if running as root, if so give warning.
 if ( $< == 0 ) {
-	print "\n********************************************************\n";
-	print "* DANGERZONE: You are running Autoban as root!         *\n";
-	print "* This is probably a horrible idea security wise...    *\n";
-	print "********************************************************\n\n\n"; 
+    print "\n********************************************************\n";
+    print "* DANGERZONE: You are running Autoban as root!         *\n";
+    print "* This is probably a horrible idea security wise...    *\n";
+    print "********************************************************\n\n\n"; 
 }
 
 #Define a HoHoHoL(?) to shove all of our data in. 
@@ -106,154 +108,125 @@ our $data;
 
 #create the shared es instance
 our $es = Search::Elasticsearch->new(
-	cxn_pool => $autobanConfig->param('autoban.cnx_pool'),
-	nodes => [$autobanConfig->param('autoban.esNodes')],
-        #trace_to => 'Stderr',
-	) || die "Cannot create new es instance: \$es\n";
+    cxn_pool => $autobanConfig->param('autoban.cnx_pool'),
+    nodes => [$autobanConfig->param('autoban.esNodes')],
+    #trace_to => 'Stderr',
+    ) || die "Cannot create new es instance: \$es\n";
 
 
 #look through the plugin directories and load the plugins
-debugOutput("**DEBUG: searching for plugins");
-opendir (DIR, "./plugins") or die $!;
+debugOutput("**DEBUG: checking for autoban index");
 
-
-#TODO: put this in a hash, by type. or really just anything more reasonable
-while (my $file = readdir(DIR)) {
-
-	# look for plugins
-	next unless ($file =~ m/.*\.pm/);
-	my $value = $file;
-	my $key = $file;
-	push (@plugins, "$value");
-
-}
-
-closedir(DIR);
-
-debugOutput("**DEBUG: found following plugins: @plugins");
 
 #TODO: when creating index, ensure autoban template exists and apply if not
 #ensure the autoban index exists, if not, throw a warning and create it, exit if we cannot
 #$es->indices->create(index=> $autobanConfig->param('autoban.esNodes'));
 my $autobanIndexStatus = $es->indices->exists(
     index   => $autobanConfig->param('autoban.esAutobanIndex')
-);
+    );
 unless ($autobanIndexStatus) {
-  print "WARNING: autboan's index (", $autobanConfig->param('autoban.esAutobanIndex'), ") was not found. Creating it.\n";
-  die "ERROR: could not create autoban index..." unless $es->indices->create(index=> $autobanConfig->param('autoban.esAutobanIndex'));
-  debugOutput("**DEBUG: Autoban index created");
+    print "WARNING: autboan's index (", $autobanConfig->param('autoban.esAutobanIndex'), ") was not found. Creating it.\n";
+    die "ERROR: could not create autoban index..." unless $es->indices->create(index=> $autobanConfig->param('autoban.esAutobanIndex'));
+    debugOutput("**DEBUG: Autoban index created");
 }
 else {
-  debugOutput("**DEBUG: Autoban index exists");
+    debugOutput("**DEBUG: Autoban index exists");
 }
 
 
 
 #TODO, when enabling outputs, obey safe mode
 if ($safe) {
-	print "\nAnd remember this: there is no more important safety rule than to wear these — safety glasses (safe mode is enabled)\n";
+    print "\nAnd remember this: there is no more important safety rule than to wear these — safety glasses (safe mode is enabled)\n";
 }
 
 
-#TEMP
-require "./plugins/apache-es-input.pm";
-apache_es_input();
-require "./plugins/nginx-es-input.pm";
-nginx_es_input();
+#load and run plugins from config
+foreach my $runPlugin ($autobanConfig->param('autoban.runPlugins')) {
 
-require "./plugins/whitelist-filter.pm";
-whitelist_filter();
+    #ensure the request plugin exists
+    unless (-e "$autobanCWD/plugins/$runPlugin.pm") {
+	print "\nERROR: Plugin $runPlugin was found! Plugin should be $autobanCWD/plugins/$runPlugin.pm!\n";
+	exit 1;
+    }
+    require "$autobanCWD/plugins/$runPlugin.pm";
 
-require "./plugins/apache-filter.pm";
-apache_filter();
-require "./plugins/nginx-filter.pm";
-nginx_filter();
+    #work around strict not allowing string as a subroutine ref
+    my $subref = \&$runPlugin;
 
-require "./plugins/nginx-ban-output.pm";
-nginx_ban_output();
+    #try to run the function
+    &$subref();
 
-
-
-
-#if debuging is enabled, give raw data. TEMP
-#if ($debug) {
-#	print Dumper($data);
-#}
-
-
-
-
-
-
+}
 
 
 
 #This function will be used to give the user output, if they so desire
 sub debugOutput {
-	my $human_status = $_[0];
-	if ($debug) {
-		print "$human_status \n";
-		
-	}
+    my $human_status = $_[0];
+    if ($debug) {
+	print "$human_status \n";
+	
+    }
 }
 
 
 
 __END__
 
-=head1 NAME
+    =head1 NAME
 
-Autoban - Realtime attack and abuse defence and intrusion prevention
+    Autoban - Realtime attack and abuse defence and intrusion prevention
 
-=head1 SYNOPSIS
+    =head1 SYNOPSIS
 
-autoban [options]
+    autoban [options]
 
- Options:
-   -d,--debug       enable debugging
-   -V,--verbose     enable verbose messages
-   -f,--foreground  run in foreground
-   -h,-help         brief help message
-   -man             full documentation
-   -s,--safe        safe mode
-   -v,--version     display version
+  Options:
+    -d,--debug       enable debugging
+    -V,--verbose     enable verbose messages
+    -f,--foreground  run in foreground
+    -h,-help         brief help message
+    -man             full documentation
+    -s,--safe        safe mode
+    -v,--version     display version
 
-=head1 DESCRIPTION
+    =head1 DESCRIPTION
 
-B<This program> is used to analyze inputs, apply filters and push data to outputs
+    B<This program> is used to analyze inputs, apply filters and push data to outputs
 
 
-=head1 OPTIONS
+    =head1 OPTIONS
 
-No options are required
+    No options are required
 
-=over 8
+    =over 8
 
-=item B<-d, --debug> 
-Enable debug mode
+    =item B<-d, --debug> 
+    Enable debug mode
 
-=item B<-v, --verbose> 
-Enable verbose messages
+    =item B<-v, --verbose> 
+    Enable verbose messages
 
-=item B<-f, --foreground>
-Run in foreground. This will enable you to run autoban in the foreground, even if the daemon is running.
+    =item B<-f, --foreground>
+    Run in foreground. This will enable you to run autoban in the foreground, even if the daemon is running.
 
-=item B<-h, --help>
-Print a brief help message and exits.
+    =item B<-h, --help>
+    Print a brief help message and exits.
 
-=item B<--man>
-Print the manual page.
+    =item B<--man>
+    Print the manual page.
 
-=item B<-s,--safe>
-Run in safe mode. This will not preform any bans, but instead display what would have happened. This is useful if you want to run this in read only mode. 
+    =item B<-s,--safe>
+    Run in safe mode. This will not preform any bans, but instead display what would have happened. This is useful if you want to run this in read only mode. 
 
-=item B<-v, --version> 
-Display program version 
+    =item B<-v, --version> 
+    Display program version 
 
-=back
+    =back
 
-=head1 CHANGELOG
+    =head1 CHANGELOG
 
-B<0.1> 12-10-2013 Initial release. All other releases until there is a stable product will be under this version. 
+    B<0.1> 12-10-2013 Initial release. All other releases until there is a stable product will be under this version. 
 
-=cut
+    =cut
