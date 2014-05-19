@@ -3,7 +3,7 @@
 #this filter will REMOVE matched ips from all of the plugin data to keep them from being blocked. It does not remove active bans from the db.
 #this plugin should be the first filter to run after all inputs have finished. 
 
-sub whitelist_filter {
+sub ip_whitelist_filter {
     debugOutput("\n**DEBUG: Running whitelist_filter\n");
 
     use NetAddr::IP;

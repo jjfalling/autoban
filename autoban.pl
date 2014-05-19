@@ -29,18 +29,19 @@ use Pod::Usage;
 use Getopt::Long;
 use Fcntl qw(LOCK_EX LOCK_NB);
 use File::NFSLock;
-use Cwd 'getcwd';
+use Cwd 'abs_path';
 
 #get offical elasticsearch module @ https://metacpan.org/pod/Search::Elasticsearch
 use Search::Elasticsearch;
 die "The Search::Elasticsearch module must be >= v1.11! You have v$Search::Elasticsearch::VERSION\n\n"
     unless $Search::Elasticsearch::VERSION >= 1.11;
 
-#get our current working dir
-my $autobanCWD = getcwd($0);
+#get the path to autoban by using abs_path, then remove autoban.pl from name
+my $autobanPath = abs_path($0);
+$autobanPath =~ s/autoban.pl//;
 
 #Define config file
-my $configFile = "$autobanCWD/autoban.cfg";
+my $configFile = "$autobanPath/autoban.cfg";
 
 #define program version
 my $autobanVersion = "0.0.1";
@@ -145,11 +146,11 @@ if ($safe) {
 foreach my $runPlugin ($autobanConfig->param('autoban.runPlugins')) {
 
     #ensure the request plugin exists
-    unless (-e "$autobanCWD/plugins/$runPlugin.pm") {
-	print "\nERROR: Plugin $runPlugin was found! Plugin should be $autobanCWD/plugins/$runPlugin.pm!\n";
+    unless (-e "$autobanPath/plugins/$runPlugin.pm") {
+	print "\nERROR: Plugin $runPlugin was found! Plugin should be $autobanPath/plugins/$runPlugin.pm!\n";
 	exit 1;
     }
-    require "$autobanCWD/plugins/$runPlugin.pm";
+    require "$autobanPath/plugins/$runPlugin.pm";
 
     #work around strict not allowing string as a subroutine ref
     my $subref = \&$runPlugin;
