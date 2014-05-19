@@ -141,7 +141,7 @@ if ($safe) {
 }
 
 
-#load and run plugins from config
+#load and run plugins specified in config
 foreach my $runPlugin ($autobanConfig->param('autoban.runPlugins')) {
 
     #ensure the request plugin exists
