@@ -183,7 +183,7 @@ sub enhancedOutput {
     my $humanStatus = $_[1];
     my $prepend = $_[2];
     
-    if (($debug) && ($outputType eq "debug")){
+    if (($debug) && ($outputType eq "debug" || $outputType eq "verbose")){
 	print "$humanStatus\n";
     }
     elsif (($verbose) && ($outputType eq "verbose")){
