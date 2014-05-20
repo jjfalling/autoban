@@ -4,7 +4,7 @@
 use warnings;
 
 sub geoiporg_filter {
-    debugOutput("\n**DEBUG: Running geoiporg_filter\n");
+   enhancedOutput("verbose","\n\nRunning geoiporg_filter\n");
     use Geo::IP::PurePerl;
 
     my $gi = Geo::IP::PurePerl->open($autobanConfig->param('geoiporg-filter.geoOrgDatabase'));
@@ -14,12 +14,12 @@ sub geoiporg_filter {
     #go though each plugin
     foreach my $currentPlugin (keys %{$data}) {
 
-	debugOutput("**DEBUG: Looking at plugin data for: $currentPlugin");
+      enhancedOutput("debug","**DEBUG: Looking at plugin data for: $currentPlugin");
 
 	#look at each ip address in the current plugin
 	foreach my $currentIp (keys %{$data->{$currentPlugin}->{'ipData'}}) {
 
-	    debugOutput("**DEBUG: Checking $currentIp");
+	  enhancedOutput("debug","**DEBUG:  Checking $currentIp");
 	    my $currentIpOrg = $gi->isp_by_addr($currentIp) || '-';
 
 	    #run through the array of whitelist names, if there is a match, REMOVE it from the data hash
@@ -27,7 +27,7 @@ sub geoiporg_filter {
 	    if ($currentIpOrg =~ /$tempdata/i)
 	    {
 		#ip is in whitelist, remove it from the current plugin's data set and move on to next ip
-		debugOutput("**DEBUG: $currentIp is $currentIpOrg which is in whitelist, removing from data set");
+	      enhancedOutput("debug","**DEBUG: $currentIp is $currentIpOrg which is in whitelist, removing from data set");
 		delete $data->{$currentPlugin}->{'ipData'}->{$currentIp};
 	    }
 	}

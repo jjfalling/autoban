@@ -21,7 +21,7 @@ my $banTheshold = 9;
 
 
 sub nginx_ban_output {
-    debugOutput("\n**DEBUG: Running nginx_ban_output\n");
+    enhancedOutput("verbose","\n\nRunning nginx_ban_output\n");
     my @denyArray;
     my $nginxBanFileWritable=0;
 

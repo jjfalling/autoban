@@ -20,9 +20,9 @@ my $num_purges;
 
 sub apache_es_input {
 
-debugOutput("\n**DEBUG: Running apache_es_input\n");
+    enhancedOutput("verbose","\n\nRunning apache_es_input\n");
 
-debugOutput("**DEBUG: Searching for the highest requesting ips");
+    debugOutput("**DEBUG: Searching for the highest requesting ips");
 
 
 

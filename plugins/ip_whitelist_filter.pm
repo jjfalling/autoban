@@ -4,7 +4,7 @@
 #this plugin should be the first filter to run after all inputs have finished. 
 
 sub ip_whitelist_filter {
-    debugOutput("\n**DEBUG: Running whitelist_filter\n");
+    enhancedOutput("verbose","\n\nRunning whitelist_filter\n");
 
     use NetAddr::IP;
 

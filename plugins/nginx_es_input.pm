@@ -21,7 +21,7 @@ my $num_purges;
 
 sub nginx_es_input {
 
-    debugOutput("\n**DEBUG: Running nginx_es_input\n");
+    enhancedOutput("verbose","\n\nRunning nginx_es_input\n");
 
     debugOutput("**DEBUG: Searching for the highest requesting ips");
 

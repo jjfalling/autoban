@@ -8,7 +8,7 @@ my $low = 4;
 my $banTheshold = 8;
  
 sub nginx_filter() {
-	debugOutput("\n**DEBUG: Running nginx_filter\n");
+	enhancedOutput("verbose","\n\nRunning nginx_filter\n");
 	nginxFlagForBan();
 }
 

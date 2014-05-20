@@ -61,7 +61,7 @@ GetOptions
      "s|safe" => \$safe) or pod2usage(2);
 
 pod2usage(1) if $help;
-pod2usage(-exitval => 0, -verbose => 2) if $man;
+pod2usage(-exitval => 0) if $man;
 
 if ($version) {
     print "autoban $autobanVersion\n";
@@ -89,7 +89,13 @@ our $autobanConfig = new Config::Simple(filename=>"$configFile");
 
 print "\n\n";
 print "Starting Autoban v.$autobanVersion, please wait...\n\n";
-debugOutput("\n**DEBUG: Debugging enabled");
+
+if ($debug){
+    print "\n\n**DEBUG: Debug output enabled\n";
+}
+elsif ($verbose){
+    print "\n\nVerbose output enabled\n";
+}
 
 
 #check if running as root, if so give warning.
@@ -116,7 +122,7 @@ our $es = Search::Elasticsearch->new(
 
 
 #look through the plugin directories and load the plugins
-debugOutput("**DEBUG: checking for autoban index");
+enhancedOutput("debug","**DEBUG: Checking for autoban index");
 
 
 #TODO: when creating index, ensure autoban template exists and apply if not
@@ -128,10 +134,10 @@ my $autobanIndexStatus = $es->indices->exists(
 unless ($autobanIndexStatus) {
     print "WARNING: autboan's index (", $autobanConfig->param('autoban.esAutobanIndex'), ") was not found. Creating it.\n";
     die "ERROR: could not create autoban index..." unless $es->indices->create(index=> $autobanConfig->param('autoban.esAutobanIndex'));
-    debugOutput("**DEBUG: Autoban index created");
+    enhancedOutput("debug","**DEBUG: Autoban index created");
 }
 else {
-    debugOutput("**DEBUG: Autoban index exists");
+    enhancedOutput("debug","**DEBUG: Autoban index exists");
 }
 
 
@@ -162,15 +168,28 @@ foreach my $runPlugin ($autobanConfig->param('autoban.runPlugins')) {
 
 
 
-#This function will be used to give the user output, if they so desire
+#OLD This function will be used to give the user output, if they so desire
 sub debugOutput {
     my $human_status = $_[0];
     if ($debug) {
 	print "$human_status \n";
-	
     }
 }
 
+#This function will be used to give the user output, if they so desire
+sub enhancedOutput {
+    #we get two inputs, first is the type of message, second is the message
+    my $outputType = $_[0];
+    my $humanStatus = $_[1];
+    my $prepend = $_[2];
+    
+    if (($debug) && ($outputType eq "debug")){
+	print "$humanStatus\n";
+    }
+    elsif (($verbose) && ($outputType eq "verbose")){
+	print "$humanStatus\n";	
+    }
+}
 
 
 __END__
@@ -204,7 +223,7 @@ __END__
     =over 8
 
     =item B<-d, --debug> 
-    Enable debug mode
+    Enable debug mode. This will supercede the verbose flag
 
     =item B<-v, --verbose> 
     Enable verbose messages
