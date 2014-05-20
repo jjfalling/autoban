@@ -19,7 +19,7 @@ sub geoiporg_filter {
 	#look at each ip address in the current plugin
 	foreach my $currentIp (keys %{$data->{$currentPlugin}->{'ipData'}}) {
 
-	  enhancedOutput("debug","**DEBUG:  Checking $currentIp");
+	  enhancedOutput("debug","**DEBUG: Checking $currentIp");
 	    my $currentIpOrg = $gi->isp_by_addr($currentIp) || '-';
 
 	    #run through the array of whitelist names, if there is a match, REMOVE it from the data hash
