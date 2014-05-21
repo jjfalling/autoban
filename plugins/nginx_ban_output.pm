@@ -26,7 +26,7 @@ sub nginx_ban_output {
     my $nginxBanFileWritable=0;
 
 
-    debugOutput("**DEBUG: looping through the ban ips");
+    enhancedOutput("debug","**DEBUG: looping through the ban ips");
 
 
     #get current GMT date in format YYYYMMDDHHMM, as an int
@@ -39,7 +39,7 @@ sub nginx_ban_output {
     
     #check to see what inputs we are looking at
     foreach my $plugin ($autobanConfig->param('nginx-ban-output.plugins')){
-	debugOutput("**DEBUG: looking at input plugin: $plugin");
+	enhancedOutput("debug","**DEBUG: looking at input plugin: $plugin");
 
 	foreach my $ip (sort keys %{$data->{$plugin}->{'ipData'}}) {
 	    #strip the trailing comma from the string
@@ -50,7 +50,7 @@ sub nginx_ban_output {
 	    #if above threshold, see if we should ban it
 	    if ($data->{$plugin}->{'ipData'}->{$ip}->{'banScore'} >= $banTheshold){
 		$banCount=1;
-		debugOutput("**DEBUG: IP $ip is above ban threshold, checking ban status");
+		enhancedOutput("debug","**DEBUG: IP $ip is above ban threshold, checking ban status");
 
 
 		# This is where the ban db will come into play. do some sort of query to get all active nginx banned ips and generate ban file.
@@ -83,12 +83,12 @@ sub nginx_ban_output {
 				}
 		    }
 		    );
-		debugOutput("**DEBUG: Search took $ipBanSearch->{'took'}ms");
+		enhancedOutput("debug","**DEBUG: Search took $ipBanSearch->{'took'}ms");
 
 		#look at number of bans for the current ip
 		if ($ipBanSearch->{'hits'}->{'total'} == 0){
 		    #if the search returned no hits, then we need to create a new ban record
-		    debugOutput("**DEBUG: Found no active bans for $ip, adding one");
+		    enhancedOutput("debug","**DEBUG: Found no active bans for $ip, adding one");
 
 		    #create ban since there one does not exist for this ip
 		    my $ban_expires = $currentDateTime+$autobanConfig->param('nginx-ban-output.banLength');
@@ -106,11 +106,11 @@ sub nginx_ban_output {
 			);
 		}
 		elsif ($ipBanSearch->{'hits'}->{'total'} == 1 ){
-		    debugOutput("**DEBUG: Found one active ban for $ip");
+		    enhancedOutput("debug","**DEBUG: Found one active ban for $ip");
 		    #we do nothing here since the ban is already active. 
 		}
 		else {
-		    debugOutput("**DEBUG: found multiple bans for $ip, not sure what to do with this...");
+		    enhancedOutput("debug","**DEBUG: found multiple bans for $ip, not sure what to do with this...");
 		    print "\nWARNING: more then one active ban exists for $ip\n";
 		    #TODO: figure out how to handle this
 		}	    
@@ -121,14 +121,14 @@ sub nginx_ban_output {
 
 
 	if ($banCount == 0){
-	    debugOutput("**DEBUG: I found nothing new to ban on this run");
+	    enhancedOutput("debug","**DEBUG: I found nothing new to ban on this run");
 	}	
 
 
     }
 
     #run a facted search on active bans by ip. and sort for good measure. 
-    debugOutput("**DEBUG: Getting all active banned ips");
+    enhancedOutput("debug","**DEBUG: Getting all active banned ips");
 
     #adding a sleep to try to work around newly added data not showing up in the search. 
     sleep 5;
@@ -166,7 +166,7 @@ sub nginx_ban_output {
 	);
     debugOutput("**DEBUG: Search took $activeBanResult->{'took'}ms, returned $activeBanResult->{'facets'}->{'ipFacet'}->{'total'} banned ips");
 
-    debugOutput("**DEBUG: attempting to open nginx ban file for writing");
+    enhancedOutput("debug","**DEBUG: attempting to open nginx ban file for writing");
 
 
     unless (-e $autobanConfig->param('nginx-ban-output.location')) {
@@ -185,20 +185,20 @@ sub nginx_ban_output {
 	    debugOutput("**DEBUG: adding $banedIps->{'term'} to nginx ban file");
 	    print NGINXBANFILE "deny $banedIps->{'term'};\n";
 	}
-	debugOutput("**DEBUG: finished writing to nginx ban file, closing file");
+	enhancedOutput("debug","**DEBUG: finished writing to nginx ban file, closing file");
 	close NGINXBANFILE;
 
 	#see if user provided a post run script and if so, run it. If not, then we just ignore this
 	unless ($autobanConfig->param("nginx-ban-output.postRunScript")) {
-	    debugOutput("**DEBUG: no post script provided, skipping");
+	    enhancedOutput("debug","**DEBUG: no post script provided, skipping");
 	}
 	else {
-	    debugOutput("**DEBUG: post script provided, running it");
+	    enhancedOutput("debug","**DEBUG: post script provided, running it");
 	    my $tmpPostScript = $autobanConfig->param('nginx-ban-output.postRunScript');
 	    my $postScript = `$tmpPostScript`;
 	    my $postScriptExit = $?;
 	    unless ( $postScriptExit == 0) { print "Error running post script " . $autobanConfig->param('nginx-ban-output.postRunScript') .": exit code: $postScriptExit. $postScript\n";}
-	    debugOutput("**DEBUG: post script output: $postScript");
+	    enhancedOutput("debug","**DEBUG: post script output: $postScript");
 	}
 
     }
