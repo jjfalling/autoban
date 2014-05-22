@@ -167,15 +167,6 @@ foreach my $runPlugin ($autobanConfig->param('autoban.runPlugins')) {
 }
 
 
-
-#OLD This function will be used to give the user output, if they so desire
-sub debugOutput {
-    my $human_status = $_[0];
-    if ($debug) {
-	print "$human_status \n";
-    }
-}
-
 #This function will be used to give the user output, if they so desire
 sub enhancedOutput {
     #we get two inputs, first is the type of message, second is the message

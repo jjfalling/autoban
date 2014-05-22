@@ -49,7 +49,7 @@ sub apacheFlagForBan() {
 	    #$isp = isp_of_ip($ip) || '-';
 	    $comment = substr(($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'}),0,-1);
 	    $comment = "apache-filter - Score: $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} Reason: " . "$comment";
-	    debugOutput("**DEBUG: IP: $ip COMMENT: $comment ");
+	    enhancedOutput("debug","**DEBUG: IP: $ip COMMENT: $comment ");
 	    
         }
 

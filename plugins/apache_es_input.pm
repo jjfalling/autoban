@@ -22,7 +22,7 @@ sub apache_es_input {
 
     enhancedOutput("verbose","\n\nRunning apache_es_input\n");
 
-    debugOutput("**DEBUG: Searching for the highest requesting ips");
+    enhancedOutput("debug","**DEBUG: Searching for the highest requesting ips");
 
 
 
@@ -60,7 +60,7 @@ my $result = $es->search(
 );
 
 
-debugOutput("**DEBUG: Search took $result->{'took'}ms");
+enhancedOutput("debug","**DEBUG: Search took $result->{'took'}ms");
 
 
 # 	my $result = $es->search(
@@ -101,7 +101,7 @@ debugOutput("**DEBUG: Search took $result->{'took'}ms");
 	#insepectPerdata();
 
 	#look at ips, and add points against score
-#	debugOutput("**DEBUG: Note: Not listing any crawlers below");
+#	enhancedOutput("debug","**DEBUG: Note: Not listing any crawlers below");
 #	flagForBan();
 
 
@@ -133,7 +133,7 @@ sub gatherBasicIpInfoApache {
         #$data->{'apache-es-input'}->{'ipData'}->{$ip}->$data->{$ip}->{'isCrawler'} = checkForCrawlers($ip);
         $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'hitCount'} = $num_reqs;
         
-		debugOutput("**DEBUG: Inspecting $ip");
+		enhancedOutput("debug","**DEBUG: Inspecting $ip");
 
 		#temp vars
 		my ($isLoggedIn, $postMethodPercentage, $postPercentage, $badResponseCodePercent, $varyUserAgent, $hasCookie, $hasUserAgent);
@@ -174,7 +174,7 @@ my $result2 = $es->search(
 
 
 
-debugOutput("**DEBUG: Search took $result2->{'took'}ms");
+enhancedOutput("debug","**DEBUG: Search took $result2->{'took'}ms");
 
 
 # 		$result2 = $es->search(
@@ -244,7 +244,7 @@ sub insepectPerdataApache {
 
         }
         else {
-			debugOutput("**DEBUG: Skipping $ip as it appears to be a crawler\n");
+			enhancedOutput("debug","**DEBUG: Skipping $ip as it appears to be a crawler\n");
         
         }
     }
@@ -283,7 +283,7 @@ sub checkForCrawlersApache {
 
     #run through the array of crawler names, if there is a match, return true
         if ($isp =~ /$autobanConfig->param('apache-filter.crawlers')/i){
-        	debugOutput("**DEBUG: $ip appears to be a crawler");
+        	enhancedOutput("debug","**DEBUG: $ip appears to be a crawler");
         	return "true";
         }else{
         	return "false";
@@ -325,7 +325,7 @@ __END__
 
 	#grab a new copy of the ban config on ops01 from the puppet repo
 	our @denyArray;
-	debugOutput("**DEBUG: Attempting to get current blockips.conf from the provided source");
+	enhancedOutput("debug","**DEBUG: Attempting to get current blockips.conf from the provided source");
 	$curlOutput = `curl -s -6 https://atuin.falling.se/nginx/blockips.conf -o /tmp/blockips.conf`;
 	$curlExitCode = $?;
 
@@ -336,7 +336,7 @@ __END__
 	}
 	else {
 		#read the denyfile into an array
-		debugOutput("**DEBUG: Was able to get blockips.conf. Reading the file into an array");
+		enhancedOutput("debug","**DEBUG: Was able to get blockips.conf. Reading the file into an array");
 		open (DENYFILE, "/tmp/blockips.conf") or print "Error: Can't open nginx blockfile: $!";
 		@denyArray = <DENYFILE>;
 		close DENYFILE;
@@ -359,7 +359,7 @@ sub checkForCrawlers {
 
     #run through the array of crawler names, if there is a match, return true
         if ($isp =~ /$crawlers/i){
-        	debugOutput("**DEBUG: $ip appears to be a crawler");
+        	enhancedOutput("debug","**DEBUG: $ip appears to be a crawler");
         	return "true";
         }else{
         	return "false";
@@ -373,14 +373,14 @@ sub checkForCrawlers {
 	my $banCount = 0;
 	runBanning();
 	
-	if ($banCount == 0) {debugOutput("**DEBUG: I found nothing to ban on this run");}
+	if ($banCount == 0) {enhancedOutput("debug","**DEBUG: I found nothing to ban on this run");}
 	if (($opt_nodb) && $banCount > 0){print "\n\nPut the above nginx conf lines at the top of /opt/webroot/packages/centos/nginx/conf/sysban/blockips.conf on ops01\nThen run \"force-sysban-run.sh nodb\" on ops01 to push the file out\n\n";}
 
 
 
 sub runBanning {
 
-    debugOutput("\n\n");
+    enhancedOutput("debug","\n\n");
 
     #TODO: put in config file
     my $banTheshold = 8;
@@ -405,7 +405,7 @@ sub runBanning {
 						$banCount++;
 					}
 					else{
-						debugOutput("**DEBUG: ip already banned in nginx conf: $ip");
+						enhancedOutput("debug","**DEBUG: ip already banned in nginx conf: $ip");
 					}
 				}
 				
@@ -433,7 +433,7 @@ sub runBanning {
 						$banCount++;
 					}
 					else{
-						debugOutput("**DEBUG: ip already banned in blockips.conf: $ip");
+						enhancedOutput("debug","**DEBUG: ip already banned in blockips.conf: $ip");
 					}
 				}
 				

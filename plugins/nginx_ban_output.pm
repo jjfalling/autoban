@@ -164,7 +164,7 @@ sub nginx_ban_output {
 	#use size=0 to only give the faceted data
 	size => 0
 	);
-    debugOutput("**DEBUG: Search took $activeBanResult->{'took'}ms, returned $activeBanResult->{'facets'}->{'ipFacet'}->{'total'} banned ips");
+    enhancedOutput("debug","**DEBUG: Search took $activeBanResult->{'took'}ms, returned $activeBanResult->{'facets'}->{'ipFacet'}->{'total'} banned ips");
 
     enhancedOutput("debug","**DEBUG: attempting to open nginx ban file for writing");
 
@@ -182,7 +182,7 @@ sub nginx_ban_output {
 
 	foreach my $banedIps (@{$activeBanResult->{'facets'}->{'ipFacet'}->{'terms'}}) {
 	    next if $banedIps->{'term'} eq '-';
-	    debugOutput("**DEBUG: adding $banedIps->{'term'} to nginx ban file");
+	    enhancedOutput("debug","**DEBUG: adding $banedIps->{'term'} to nginx ban file");
 	    print NGINXBANFILE "deny $banedIps->{'term'};\n";
 	}
 	enhancedOutput("debug","**DEBUG: finished writing to nginx ban file, closing file");
