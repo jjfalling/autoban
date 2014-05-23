@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 #****************************************************************************
-#*   Autoban                                                                *
+#*   autoban                                                                *
 #*   Realtime attack and abuse defence and intrusion prevention             *
 #*                                                                          *
 #*   Copyright (C) 2014 by Jeremy Falling except where noted.               *
@@ -61,8 +61,8 @@ GetOptions
      "v|version" => \$version,
      "s|safe" => \$safe) or pod2usage(2);
 
-pod2usage(1) if $help;
-pod2usage(-exitval => 0) if $man;
+pod2usage(-verbose => 1) if $help;
+pod2usage(-verbose => 3, -exitval => 0) if $man;
 
 if ($version) {
     print "autoban $autobanVersion\n";
@@ -89,7 +89,7 @@ our $autobanConfig = new Config::Simple(filename=>"$configFile");
 
 
 print "\n\n";
-print "Starting Autoban v.$autobanVersion, please wait...\n\n";
+print "Starting autoban v.$autobanVersion, please wait...\n\n";
 
 if ($debug){
     print "\n\n**DEBUG: Debug output enabled\n";
@@ -102,7 +102,7 @@ elsif ($verbose){
 #check if running as root, if so give warning.
 if ( $< == 0 ) {
     print "\n********************************************************\n";
-    print "* DANGERZONE: You are running Autoban as root!         *\n";
+    print "* DANGERZONE: You are running autoban as root!         *\n";
     print "* This is probably a horrible idea security wise...    *\n";
     print "********************************************************\n\n\n"; 
 }
@@ -135,10 +135,10 @@ my $autobanIndexStatus = $es->indices->exists(
 unless ($autobanIndexStatus) {
     print "WARNING: autboan's index (", $autobanConfig->param('autoban.esAutobanIndex'), ") was not found. Creating it.\n";
     die "ERROR: could not create autoban index..." unless $es->indices->create(index=> $autobanConfig->param('autoban.esAutobanIndex'));
-    enhancedOutput("debug","**DEBUG: Autoban index created");
+    enhancedOutput("debug","**DEBUG: autoban index created");
 }
 else {
-    enhancedOutput("debug","**DEBUG: Autoban index exists");
+    enhancedOutput("debug","**DEBUG: autoban index exists");
 }
 
 
@@ -188,24 +188,24 @@ __END__
 
 =head1 NAME
 
-Autoban - Realtime attack and abuse defence and intrusion prevention
+autoban - Realtime attack and abuse defence and intrusion prevention
 
 =head1 SYNOPSIS
 
 autoban [options]
 
-Options:
--d,--debug       enable debugging
--V,--verbose     enable verbose messages
--f,--foreground  run in foreground
--h,-help         brief help message
--man             full documentation
--s,--safe        safe mode
--v,--version     display version
+     Options:
+       -d,--debug       enable debug mode
+       -V,--verbose     enable verbose messages
+       -f,--foreground  run in foreground
+       -h,-help         brief help message
+       -man             full documentation
+       -s,--safe        safe mode
+       -v,--version     display version
 
 =head1 DESCRIPTION
 
-B<This program> is used to analyze inputs, apply filters and push data to outputs
+B<autoban> is used to analyze inputs, apply filters and push data to outputs
 
 
 =head1 OPTIONS
@@ -215,7 +215,7 @@ No options are required
 =over 8
 
 =item B<-d, --debug> 
-Enable debug mode. This will supercede the verbose flag
+Enable debug mode with a very high amount of output (debug lines start with **DEBUG). This will supercede the verbose flag
 
 =item B<-v, --verbose> 
 Enable verbose messages

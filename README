@@ -11,7 +11,7 @@ NOTE: This project is currently pre-alpha and the code will drastically change a
 
 
 The original version of autoban was developed at one of the internet's largest websites in order to block abuse and attacks that caused downtime. This is an attempt to rewrite that project and opensource it. 
-Autoban works by analyzing logs stored in elasticsearch against filters and rules then generating ban or block entries.
+autoban works by analyzing logs stored in elasticsearch against filters and rules then generating ban or block entries.
 
 Inputs gather data about ip addresses
 Filters determine an action to take based upon the data from inputs
