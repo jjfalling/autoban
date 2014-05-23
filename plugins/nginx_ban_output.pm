@@ -1,4 +1,24 @@
 #this output generates a nginx ban list
+
+#****************************************************************************
+#*   autoban - nginx_ban output                                             *
+#*                                                                          *
+#*   Copyright (C) 2014 by Jeremy Falling except where noted.               *
+#*                                                                          *
+#*   This program is free software: you can redistribute it and/or modify   *
+#*   it under the terms of the GNU General Public License as published by   *
+#*   the Free Software Foundation, either version 3 of the License, or      *
+#*   (at your option) any later version.                                    *
+#*                                                                          *
+#*   This program is distributed in the hope that it will be useful,        *
+#*   but WITHOUT ANY WARRANTY; without even the implied warranty of         *
+#*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          *
+#*   GNU General Public License for more details.                           *
+#*                                                                          *
+#*   You should have received a copy of the GNU General Public License      *
+#*   along with this program.  If not, see <http://www.gnu.org/licenses/>.  *
+#****************************************************************************
+
 #it also keeps a historical record in an elasticsearch index (yay! using es as a datastore! [This can be bad, just ask any es employee...] but I assume this data can be considered relatively ephemeral )
 #the record in es will have the ip, epoch time ban was created, ban length, module name, and comment. 
 #this way we take care of creating and expiring bans in nginx. 

@@ -1,6 +1,26 @@
 #The reason I use the org db and not the isp is that when ips are reassigned they show up in the org db, that way you get finer grain data on who actually uses the ip. However, I think this db only works with ipv4. 
 #TODO: add geoip2 omni support?
 
+#****************************************************************************
+#*   autoban - geoiporg filter                                              *
+#*                                                                          *
+#*   Copyright (C) 2014 by Jeremy Falling except where noted.               *
+#*                                                                          *
+#*   This program is free software: you can redistribute it and/or modify   *
+#*   it under the terms of the GNU General Public License as published by   *
+#*   the Free Software Foundation, either version 3 of the License, or      *
+#*   (at your option) any later version.                                    *
+#*                                                                          *
+#*   This program is distributed in the hope that it will be useful,        *
+#*   but WITHOUT ANY WARRANTY; without even the implied warranty of         *
+#*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          *
+#*   GNU General Public License for more details.                           *
+#*                                                                          *
+#*   You should have received a copy of the GNU General Public License      *
+#*   along with this program.  If not, see <http://www.gnu.org/licenses/>.  *
+#****************************************************************************
+
+
 use warnings;
 
 sub geoiporg_filter {

@@ -1,5 +1,25 @@
 #whitelist filter module
 
+#****************************************************************************
+#*   autoban - ip_whitelist filter                                          *
+#*                                                                          *
+#*   Copyright (C) 2014 by Jeremy Falling except where noted.               *
+#*                                                                          *
+#*   This program is free software: you can redistribute it and/or modify   *
+#*   it under the terms of the GNU General Public License as published by   *
+#*   the Free Software Foundation, either version 3 of the License, or      *
+#*   (at your option) any later version.                                    *
+#*                                                                          *
+#*   This program is distributed in the hope that it will be useful,        *
+#*   but WITHOUT ANY WARRANTY; without even the implied warranty of         *
+#*   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          *
+#*   GNU General Public License for more details.                           *
+#*                                                                          *
+#*   You should have received a copy of the GNU General Public License      *
+#*   along with this program.  If not, see <http://www.gnu.org/licenses/>.  *
+#****************************************************************************
+
+
 #this filter will REMOVE matched ips from all of the plugin data to keep them from being blocked. It does not remove active bans from the db.
 #this plugin should be the first filter to run after all inputs have finished. 
 
