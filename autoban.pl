@@ -57,15 +57,15 @@ GetOptions
      'man' => \$man,
      'f|foreground' => \$foreground,
      "d|debug" => \$debug,
-     "V|verbose" => \$verbose,
-     "v|version" => \$version,
+     "v|verbose" => \$verbose,
+     "V|version" => \$version,
      "s|safe" => \$safe) or pod2usage(2);
 
 pod2usage(-verbose => 1) if $help;
 pod2usage(-verbose => 3, -exitval => 0) if $man;
 
 if ($version) {
-    print "autoban $autobanVersion\n";
+    print "autoban $autobanVersion\n\n";
     exit;
 }
 
@@ -196,12 +196,12 @@ autoban [options]
 
      Options:
        -d,--debug       enable debug mode
-       -V,--verbose     enable verbose messages
+       -v,--verbose     enable verbose messages
        -f,--foreground  run in foreground
        -h,-help         brief help message
        -man             full documentation
        -s,--safe        safe mode
-       -v,--version     display version
+       -V,--version     display version
 
 =head1 DESCRIPTION
 
@@ -232,7 +232,7 @@ Print the manual page.
 =item B<-s,--safe>
 Run in safe mode. This will not preform any bans, but instead display what would have happened. This is useful if you want to run this in read only mode. 
 
-=item B<-v, --version> 
+=item B<-V, --version> 
 Display program version 
 
 =back

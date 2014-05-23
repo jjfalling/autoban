@@ -32,7 +32,7 @@ sub ip_whitelist_filter {
     #go though each plugin
     foreach my $currentPlugin (keys %{$data}) {
 
-	enhancedOutput("debug","**DEBUG: Looking at plugin data for: $currentPlugin");
+	enhancedOutput("verbose","Looking at plugin data for: $currentPlugin");
 
 	#look at each ip address in the current plugin
 	foreach my $currentIp (keys %{$data->{$currentPlugin}->{'ipData'}}) {
@@ -47,7 +47,7 @@ sub ip_whitelist_filter {
 		if ($ipAddr->within($network)) {
 
 		    #ip is in whitelist, remove it from the current plugin's data set and move on to next ip
-		    enhancedOutput("debug","**DEBUG: $currentIp is in whitelist, removing from data set");
+		    enhancedOutput("verbose","$currentIp is in whitelist, removing from data set");
 		    delete $data->{$currentPlugin}->{'ipData'}->{$currentIp};
 		    last;
 

@@ -19,7 +19,7 @@
 #*   along with this program.  If not, see <http://www.gnu.org/licenses/>.  *
 #****************************************************************************
 
-#it also keeps a historical record in an elasticsearch index (yay! using es as a datastore! [This can be bad, just ask any es employee...] but I assume this data can be considered relatively ephemeral )
+#it also keeps a historical record in an elasticsearch index (yay! using es as a datastore! But I assume this data can be considered relatively ephemeral )
 #the record in es will have the ip, epoch time ban was created, ban length, module name, and comment. 
 #this way we take care of creating and expiring bans in nginx. 
 
@@ -46,7 +46,7 @@ sub nginx_ban_output {
     my $nginxBanFileWritable=0;
 
 
-    enhancedOutput("debug","**DEBUG: looping through the ban ips");
+    enhancedOutput("verbose","looping through the ban ips");
 
 
     #get current GMT date in format YYYYMMDDHHMM, as an int
@@ -59,7 +59,7 @@ sub nginx_ban_output {
     
     #check to see what inputs we are looking at
     foreach my $plugin ($autobanConfig->param('nginx-ban-output.plugins')){
-	enhancedOutput("debug","**DEBUG: looking at input plugin: $plugin");
+	enhancedOutput("verbose","looking at input plugin: $plugin");
 
 	foreach my $ip (sort keys %{$data->{$plugin}->{'ipData'}}) {
 	    #strip the trailing comma from the string
@@ -141,14 +141,14 @@ sub nginx_ban_output {
 
 
 	if ($banCount == 0){
-	    enhancedOutput("debug","**DEBUG: I found nothing new to ban on this run");
+	    enhancedOutput("verbose","I found nothing new to ban on this run");
 	}	
 
 
     }
 
     #run a facted search on active bans by ip. and sort for good measure. 
-    enhancedOutput("debug","**DEBUG: Getting all active banned ips");
+    enhancedOutput("verbose","Getting all active banned ips");
 
     #adding a sleep to try to work around newly added data not showing up in the search. 
     sleep 5;
@@ -186,7 +186,7 @@ sub nginx_ban_output {
 	);
     enhancedOutput("debug","**DEBUG: Search took $activeBanResult->{'took'}ms, returned $activeBanResult->{'facets'}->{'ipFacet'}->{'total'} banned ips");
 
-    enhancedOutput("debug","**DEBUG: attempting to open nginx ban file for writing");
+    enhancedOutput("verbose","Generating nginx ban file");
 
 
     unless (-e $autobanConfig->param('nginx-ban-output.location')) {
@@ -210,7 +210,7 @@ sub nginx_ban_output {
 
 	#see if user provided a post run script and if so, run it. If not, then we just ignore this
 	unless ($autobanConfig->param("nginx-ban-output.postRunScript")) {
-	    enhancedOutput("debug","**DEBUG: no post script provided, skipping");
+	    enhancedOutput("verbose","no post script provided, skipping");
 	}
 	else {
 	    enhancedOutput("debug","**DEBUG: post script provided, running it");
@@ -218,7 +218,7 @@ sub nginx_ban_output {
 	    my $postScript = `$tmpPostScript`;
 	    my $postScriptExit = $?;
 	    unless ( $postScriptExit == 0) { print "Error running post script " . $autobanConfig->param('nginx-ban-output.postRunScript') .": exit code: $postScriptExit. $postScript\n";}
-	    enhancedOutput("debug","**DEBUG: post script output: $postScript");
+	    enhancedOutput("verbose","Post script output: $postScript");
 	}
 
     }
