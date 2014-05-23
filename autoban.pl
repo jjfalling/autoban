@@ -53,7 +53,8 @@ my @plugins;
 #TODO: fix whole debug vs verbose thing. 
 Getopt::Long::Configure('bundling');
 GetOptions
-    ('h|help|?' => \$help, man => \$man,
+    ('h|help|?' => \$help, 
+     'man' => \$man,
      'f|foreground' => \$foreground,
      "d|debug" => \$debug,
      "V|verbose" => \$verbose,
@@ -185,59 +186,59 @@ sub enhancedOutput {
 
 __END__
 
-    =head1 NAME
+=head1 NAME
 
-    Autoban - Realtime attack and abuse defence and intrusion prevention
+Autoban - Realtime attack and abuse defence and intrusion prevention
 
-    =head1 SYNOPSIS
+=head1 SYNOPSIS
 
-    autoban [options]
+autoban [options]
 
-  Options:
-    -d,--debug       enable debugging
-    -V,--verbose     enable verbose messages
-    -f,--foreground  run in foreground
-    -h,-help         brief help message
-    -man             full documentation
-    -s,--safe        safe mode
-    -v,--version     display version
+Options:
+-d,--debug       enable debugging
+-V,--verbose     enable verbose messages
+-f,--foreground  run in foreground
+-h,-help         brief help message
+-man             full documentation
+-s,--safe        safe mode
+-v,--version     display version
 
-    =head1 DESCRIPTION
+=head1 DESCRIPTION
 
-    B<This program> is used to analyze inputs, apply filters and push data to outputs
+B<This program> is used to analyze inputs, apply filters and push data to outputs
 
 
-    =head1 OPTIONS
+=head1 OPTIONS
 
-    No options are required
+No options are required
 
-    =over 8
+=over 8
 
-    =item B<-d, --debug> 
-    Enable debug mode. This will supercede the verbose flag
+=item B<-d, --debug> 
+Enable debug mode. This will supercede the verbose flag
 
-    =item B<-v, --verbose> 
-    Enable verbose messages
+=item B<-v, --verbose> 
+Enable verbose messages
 
-    =item B<-f, --foreground>
-    Run in foreground. This will enable you to run autoban in the foreground, even if the daemon is running.
+=item B<-f, --foreground>
+Run in foreground. This will enable you to run autoban in the foreground, even if the daemon is running.
 
-    =item B<-h, --help>
-    Print a brief help message and exits.
+=item B<-h, --help>
+Print a brief help message and exits.
 
-    =item B<--man>
-    Print the manual page.
+=item B<--man>
+Print the manual page.
 
-    =item B<-s,--safe>
-    Run in safe mode. This will not preform any bans, but instead display what would have happened. This is useful if you want to run this in read only mode. 
+=item B<-s,--safe>
+Run in safe mode. This will not preform any bans, but instead display what would have happened. This is useful if you want to run this in read only mode. 
 
-    =item B<-v, --version> 
-    Display program version 
+=item B<-v, --version> 
+Display program version 
 
-    =back
+=back
 
-    =head1 CHANGELOG
+=head1 CHANGELOG
 
-    B<0.1> 12-10-2013 Initial release. All other releases until there is a stable product will be under this version. 
+B<0.1> 12-10-2013 Initial release. All other releases until there is a stable product will be under this version. 
 
-    =cut
+=cut
