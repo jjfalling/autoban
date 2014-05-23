@@ -64,9 +64,8 @@ sub apacheFlagForBan() {
 	    if ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'internalComparison'} > 50 ) {$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "Too many hits compared to internal comparison ,"; $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $low)}
 	}
 
-	#$isp = isp_of_ip($ip) || '-';
 	$comment = substr(($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'}),0,-1);
-	$comment = "apache-filter - Score: $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} Reason: " . "$comment";
+	$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "apache-filter - Score: $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} Reason: " . "$comment";
        	
 
 	#check if ip is at or above threashold for ban

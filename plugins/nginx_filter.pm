@@ -63,9 +63,8 @@ sub nginxFlagForBan() {
 	    if ($data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'internalComparison'} > 50 ) {$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "Too many hits compared to internal comparison ,"; $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $low)}
 	}
 
-	#$isp = isp_of_ip($ip) || '-';
 	$comment = substr(($data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}),0,-1);
-	$comment = "nginx-filter - Score: $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} Reason: " . "$comment";	
+	$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "nginx-filter - Score: $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} Reason: " . "$comment";	
 	
 
 	#check if ip is at or above threashold for ban

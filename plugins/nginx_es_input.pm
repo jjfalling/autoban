@@ -212,25 +212,7 @@ sub gatherBasicIpInfo {
 	$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'postMethodPercentage'} = getPercentage($autobanConfig->param('nginx-es-input.maxNumOfResults'), "$postActionCount");
 	$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'badResponsePercentage'} = getPercentage($autobanConfig->param('nginx-es-input.maxNumOfResults'), "$tempBadResponseCount");
 	$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'} = getPercentage($autobanConfig->param('nginx-es-input.maxNumOfResults'), "$writeUrlCount");
-	$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'isCrawler'} = checkForCrawlers($ip);
 
-    }
-}
-
-
-sub insepectPerdata {
-
-    #look through the list of ips, and 
-    foreach my $ip (sort keys %{$data}) {
-	
-        #skip anything marked as a crawler
-        if ($data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'isCrawler'} eq "false" ) {
-
-        }
-        else {
-	    enhancedOutput("debug","**DEBUG: Skipping $ip as it appears to be a crawler\n");
-	    
-        }
     }
 }
 
@@ -250,35 +232,6 @@ sub getPercentage {
         return $pretty_perc;
     }
 
-}
-
-
-sub checkForCrawlers {
-    my $ip = shift;
-    return '' unless $ip;
-    #ipv6 regex from http://download.dartware.com/thirdparty/test-ipv6-regex.pl
-    return $ip unless $ip =~ /^(\d{1,3}\.){3}\d{1,3}$/ || $ip =~ qr/^(((?=(?>.*?::)(?!.*::)))(::)?([0-9A-F]{1,4}::?){0,5}|([0-9A-F]{1,4}:){6})(\2([0-9A-F]{1,4}(::?|$)){0,2}|((25[0-5]|(2[0-4]|1[0-9]|[1-9])?[0-9])(\.|$)){4}|[0-9A-F]{1,4}:[0-9A-F]{1,4})(?<![^:]:)(?<!\.)\z/i;
-    if ($ip =~ /172.21./){
-        my $hostName = `host $ip`;
-        $hostName =~ s/.*pointer //;
-        return $hostName;
-    }
-    $isp = isp_of_ip($ip) || '-';
-
-    #run through the array of crawler names, if there is a match, return true
-    if ($isp =~ /$autobanConfig->param('nginx-filter.crawlers')/i){
-	enhancedOutput("debug","**DEBUG: $ip appears to be a crawler");
-	return "true";
-    }else{
-	return "false";
-    }
-    
-}
-
-sub isp_of_ip {
-    my $ip = shift;
-    my $gi = Geo::IP::PurePerl->open($autobanConfig->param('nginx-filter.geoOrgDatabase'));
-    return $gi->isp_by_addr($ip);
 }
 
 

@@ -47,7 +47,8 @@ my $configFile = "$autobanPath/autoban.cfg";
 my $autobanVersion = "0.0.1";
 
 
-my ($help, $man, $foreground, $debug, $safe, $verbose, $version);
+my ($help, $man, $foreground, $debug, $verbose, $version);
+our $safe;
 my @plugins;
 
 #TODO: fix whole debug vs verbose thing. 
@@ -145,7 +146,7 @@ else {
 
 #TODO, when enabling outputs, obey safe mode
 if ($safe) {
-    print "\nAnd remember this: there is no more important safety rule than to wear these — safety glasses (safe mode is enabled)\n";
+    print "\nAnd remember this: there is no more important safety rule than to wear these — safety glasses\nSafe mode is enabled. no bans will be created and you should use the -v flag\n";
 }
 
 
@@ -164,6 +165,7 @@ foreach my $runPlugin ($autobanConfig->param('autoban.runPlugins')) {
 
     #try to run the function
     &$subref();
+
 
 }
 
@@ -230,7 +232,7 @@ Print a brief help message and exits.
 Print the manual page.
 
 =item B<-s,--safe>
-Run in safe mode. This will not preform any bans, but instead display what would have happened. This is useful if you want to run this in read only mode. 
+Run in safe mode. This will not preform any bans, but instead display what would have happened. This is useful if you want to run this in read only mode. You should also use the -v flag.
 
 =item B<-V, --version> 
 Display program version 

@@ -107,23 +107,30 @@ sub nginx_ban_output {
 
 		#look at number of bans for the current ip
 		if ($ipBanSearch->{'hits'}->{'total'} == 0){
-		    #if the search returned no hits, then we need to create a new ban record
-		    enhancedOutput("debug","**DEBUG: Found no active bans for $ip, adding one");
 
-		    #create ban since there one does not exist for this ip
-		    my $ban_expires = $currentDateTime+$autobanConfig->param('nginx-ban-output.banLength');
-		    
-		    $es->index(
-			index => $autobanConfig->param('autoban.esAutobanIndex'),
-			type => 'nginxBanOutput',
-			body => {
-			    ip => $ip,
-			    ban_created => $currentDateTime,
-			    ban_expires => $ban_expires,
-			    ban_comment => "$data->{$plugin}->{'ipData'}->{$ip}->{'banComment'}",
-			    inputPlugin => "$plugin"
-			}
-			);
+		    if ($safe) {
+			enhancedOutput("verbose","The following would have been banned: IP: $ip COMMENT: $data->{$plugin}->{'ipData'}->{$ip}->{'banComment'}");
+
+		    }
+		    else{
+			#if the search returned no hits, then we need to create a new ban record
+			enhancedOutput("debug","**DEBUG: Found no active bans for $ip, adding one");
+
+			#create ban since there one does not exist for this ip
+			my $ban_expires = $currentDateTime+$autobanConfig->param('nginx-ban-output.banLength');
+			
+			$es->index(
+			    index => $autobanConfig->param('autoban.esAutobanIndex'),
+			    type => 'nginxBanOutput',
+			    body => {
+				ip => $ip,
+				ban_created => $currentDateTime,
+				ban_expires => $ban_expires,
+				ban_comment => "$data->{$plugin}->{'ipData'}->{$ip}->{'banComment'}",
+				inputPlugin => "$plugin"
+			    }
+			    );
+		    }
 		}
 		elsif ($ipBanSearch->{'hits'}->{'total'} == 1 ){
 		    enhancedOutput("debug","**DEBUG: Found one active ban for $ip");
@@ -138,7 +145,7 @@ sub nginx_ban_output {
 	    }
 	}
 	
-
+	
 
 	if ($banCount == 0){
 	    enhancedOutput("verbose","I found nothing new to ban on this run");
@@ -146,6 +153,12 @@ sub nginx_ban_output {
 
 
     }
+
+#if safe mode is in, no not generate ban file    
+if ($safe) {
+    enhancedOutput("verbose","Not generating nginx ban file due to safe flag");
+}
+else{
 
     #run a facted search on active bans by ip. and sort for good measure. 
     enhancedOutput("verbose","Getting all active banned ips");
@@ -222,7 +235,7 @@ sub nginx_ban_output {
 	}
 
     }
-
+  }
 }
 
 
