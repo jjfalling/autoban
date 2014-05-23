@@ -82,21 +82,6 @@ sub apache_es_input {
     enhancedOutput("debug","**DEBUG: Search took $result->{'took'}ms");
 
 
-    # 	my $result = $es->search(
-    # 		facets  => {
-    # 		ipFacet => {
-    # 			terms => {
-    # 			field => $facetFeild,
-    # 			size => 50,
-    # 			},
-    # 			facet_filterb => { 
-    # 			_type => $type,
-    # 			"\@timestamp" => { 'gte' => $dt_period },
-    # 			},
-    # 		}
-    # 		},
-    # 		);
-
 
     #my (@bad, $facet);
     foreach my $res (@{$result->{'facets'}->{'ipFacet'}->{'terms'}}) {
