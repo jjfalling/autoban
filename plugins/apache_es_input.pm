@@ -172,14 +172,6 @@ sub gatherBasicIpInfoApache {
 	enhancedOutput("debug","**DEBUG: Search took $result2->{'took'}ms");
 
 
-	# 		$result2 = $es->search(
-	# 			size => $autobanConfig->param("apache-es-input.maxNumOfResults"),
-	# 			query => {
-	# 				remote_address => $ip,
-	# 				"\@timestamp" => { 'gte' => $dt_period },
-	# 			},
-	# 		);
-
 	#figure out how many results there are and if greater then maxNumOfResults
 	my $total;
 	if ($result2->{'hits'}->{'total'} >= $autobanConfig->param('apache-es-input.maxNumOfResults')) {
