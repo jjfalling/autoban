@@ -47,7 +47,7 @@ my $configFile = "$autobanPath/autoban.cfg";
 my $autobanVersion = "0.0.1";
 
 
-my ($help, $man, $foreground, $debug, $verbose, $version);
+my ($help, $man, $foreground, $debug, $verbose, $version, $daemon);
 our $safe;
 my @plugins;
 
@@ -56,9 +56,10 @@ Getopt::Long::Configure('bundling');
 GetOptions
     ('h|help|?' => \$help, 
      'man' => \$man,
-     'f|foreground' => \$foreground,
      "d|debug" => \$debug,
-     "v|verbose" => \$verbose,
+     "D|daemon" => \$daemon,
+     "v|verbose" => \$verbose,     
+     'f|foreground' => \$foreground,
      "V|version" => \$version,
      "s|safe" => \$safe) or pod2usage(2);
 
@@ -197,11 +198,12 @@ autoban - Realtime attack and abuse defence and intrusion prevention
 autoban [options]
 
      Options:
-       -d,--debug       enable debug mode
-       -v,--verbose     enable verbose messages
-       -f,--foreground  run in foreground
        -h,-help         brief help message
        -man             full documentation
+       -d,--debug       enable debug mode
+       -v,--verbose     enable verbose messages
+       -D,--daemon      run as a daemon
+       -f,--foreground  run in foreground
        -s,--safe        safe mode
        -V,--version     display version
 
@@ -216,20 +218,23 @@ No options are required
 
 =over 8
 
+=item B<-h, --help>
+Print a brief help message and exits.
+
+=item B<--man>
+Print the manual page.
+
 =item B<-d, --debug> 
 Enable debug mode with a very high amount of output (debug lines start with **DEBUG). This will supercede the verbose flag
 
 =item B<-v, --verbose> 
 Enable verbose messages
 
+=item B<-D, --daemon> 
+Run as a daeon
+
 =item B<-f, --foreground>
 Run in foreground. This will enable you to run autoban in the foreground, even if the daemon is running.
-
-=item B<-h, --help>
-Print a brief help message and exits.
-
-=item B<--man>
-Print the manual page.
 
 =item B<-s,--safe>
 Run in safe mode. This will not preform any bans, but instead display what would have happened. This is useful if you want to run this in read only mode. You should also use the -v flag.
