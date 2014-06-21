@@ -35,8 +35,7 @@ my $facetedData;
 my $geoOrgDatabase="/var/lib/GeoIP/GeoIPOrg.dat";
 my $crawlers="microsoft|yandex|yahoo|google";
 my $result2;
-my $high = 5;
-my $low = 4;
+
 my $banTheshold = 9;
 
 

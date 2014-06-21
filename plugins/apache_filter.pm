@@ -22,8 +22,6 @@
 use warnings;
 
 #TODO: move to config
-my $high = 5;
-my $low = 4;
 my $banTheshold = 8;
 
 sub apache_filter() {
@@ -32,9 +30,7 @@ sub apache_filter() {
 }
 
 
-
 sub apacheFlagForBan() {
-
 
 
 
@@ -47,21 +43,21 @@ sub apacheFlagForBan() {
 	
 
 	if ($autobanConfig->param("apache-es-input.cookie")){
-	    if ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'hasCookie'} ne "true" ) {$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "No cookie ,"; $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $low)}
+	    if ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'hasCookie'} ne "true" ) {$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "No cookie ,"; $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $autobanConfig->param("apache-filter.lowPenality"))}
 	}
 	
-	if ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'hasUserAgent'} ne "true" ) {$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "No useragent ,"; $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $high)}
+	if ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'hasUserAgent'} ne "true" ) {$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "No useragent ,"; $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $autobanConfig->param("apache-filter.highPenality"))}
 	
-	#if ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'isLoggedIn'} ne "true" ) {$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "Not logged in ,"; $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $low)}
+	#if ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'isLoggedIn'} ne "true" ) {$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "Not logged in ,"; $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $autobanConfig->param("apache-filter.lowPenality"))}
 	
-	if ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'badResponsePercentage'} > $autobanConfig->param("apache-filter.badResponsePercentage") ) {$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "Bad to good response code ratio too high ,"; $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $high)}
+	if ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'badResponsePercentage'} > $autobanConfig->param("apache-filter.badResponsePercentage") ) {$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "Bad to good response code ratio too high ,"; $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $autobanConfig->param("apache-filter.highPenality"))}
 	
 	if ($autobanConfig->param("apache-es-input.writeUrl")){
-	    if ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'} > $autobanConfig->param("apache-filter.writeUrlPercentage")) {$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "Write to read ratio too high ,"; $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $high)}
+	    if ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'} > $autobanConfig->param("apache-filter.writeUrlPercentage")) {$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "Write to read ratio too high ,"; $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $autobanConfig->param("apache-filter.highPenality"))}
 	}
 	
 	if ($autobanConfig->param("apache-es-input.internalComparison")){
-	    if ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'internalComparison'} > $autobanConfig->param("apache-filter.internalComparison") ) {$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "Too many hits compared to internal comparison ,"; $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $low)}
+	    if ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'internalComparison'} > $autobanConfig->param("apache-filter.internalComparison") ) {$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "Too many hits compared to internal comparison ,"; $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $autobanConfig->param("apache-filter.lowPenality"))}
 	}
 
 	$comment = substr(($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'}),0,-1);
@@ -69,7 +65,7 @@ sub apacheFlagForBan() {
        	
 
 	#check if ip is at or above threashold for ban
-	if ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} >= $banTheshold){ 
+	if ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} >= $autobanConfig->param("apache-filter.banThreshold")){ 
 	    $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banFlag'} = "true";
 	    enhancedOutput("verbose","Flagging IP: $ip for ban. COMMENT: $comment ");
 	}

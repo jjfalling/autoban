@@ -26,13 +26,9 @@ use warnings;
 
 my $facetedData;
 my $result2;
-my $high = 5;
-my $low = 4;
 
 
 #typically you want more then 5 or 10 min to normalize the data
-my $dt_period = 'now-15m';
-my $type = 'nginxAccess';
 my $curlOutput;
 my $curlExitCode;
 my $num_purges;
@@ -65,7 +61,7 @@ sub nginx_es_input {
 			    {
 				range => {
 				    '@timestamp' => {
-					gte => $dt_period,
+					gte =>  $autobanConfig->param('nginx-es-input.searchPeriod')
 				    }
 				}
 			    }
@@ -152,7 +148,7 @@ sub gatherBasicIpInfo {
 			{
 			    range => {
 				'@timestamp' => {
-				    gte => $dt_period,
+				    gte => $autobanConfig->param('nginx-es-input.searchPeriod')
 				}
 			    }
 			}
