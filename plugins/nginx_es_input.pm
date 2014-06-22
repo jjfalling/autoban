@@ -19,16 +19,12 @@
 #*   along with this program.  If not, see <http://www.gnu.org/licenses/>.  *
 #****************************************************************************
 
-use Geo::IP::PurePerl;
 use List::MoreUtils 'any';
 use warnings;
 #use strict;
 
 my $facetedData;
 my $result2;
-
-
-#typically you want more then 5 or 10 min to normalize the data
 my $curlOutput;
 my $curlExitCode;
 my $num_purges;
@@ -88,11 +84,21 @@ sub nginx_es_input {
     }
 
 
-
     if ($autobanConfig->param("nginx-es-input.internalComparison")){
-	$num_purges = $facetedData->{'ip'}->{'192.168.15.6'};
-	if ($num_purges == 0){print "Looks like internal comparison has no data, using backup setting\n"; $num_purges = $autobanConfig->param("nginx-es-input.internalComparisonBackupCount");}
+	#see if we have any data for the internalComparison, if not use internalComparisonBackupCount 
+	if ($facetedData->{'ip'}->{$autobanConfig->param("nginx-es-input.internalComparison")}) {
+	    $num_purges = $facetedData->{'ip'}->{$autobanConfig->param("nginx-es-input.internalComparison")};
+	}
+	else {
+	    enhancedOutput("verbose","Looks like internal comparison has no data, using backup setting");
+	    $num_purges = $autobanConfig->param("nginx-es-input.internalComparisonBackupCount");
+	}
+
     }
+    else {
+	enhancedOutput("verbose","No internalComparison provided, skipping");
+    }
+
     
     #get some data on these ips and their last x requests  
     gatherBasicIpInfo();

@@ -26,12 +26,9 @@ use warnings;
 
 my $facetedData;
 my $result2;
-
-
-#typically you want more then 5 or 10 min to normalize the data
 my $curlOutput;
 my $curlExitCode;
-my $num_purges;
+my $num_purges=0;
 
 
 sub apache_es_input {
@@ -89,12 +86,22 @@ sub apache_es_input {
     }
 
 
-
-    if ($autobanConfig->param("apache-es-input.internalComparison")){
-	$num_purges = $facetedData->{'ip'}->{$autobanConfig->param("apache-es-input.internalComparison")};
-	if ($num_purges == 0){print "Looks like internal comparison has no data, using backup setting\n"; $num_purges = $autobanConfig->param("apache-es-input.internalComparisonBackupCount");}
-    }
     
+    if ($autobanConfig->param("apache-es-input.internalComparison")){
+	#see if we have any data for the internalComparison, if not use internalComparisonBackupCount 
+	if ($facetedData->{'ip'}->{$autobanConfig->param("apache-es-input.internalComparison")}) {
+	    $num_purges = $facetedData->{'ip'}->{$autobanConfig->param("apache-es-input.internalComparison")};
+	}
+	else {
+	    enhancedOutput("verbose","Looks like internal comparison has no data, using backup setting");
+	    $num_purges = $autobanConfig->param("apache-es-input.internalComparisonBackupCount");
+	}
+
+    }
+    else {
+	enhancedOutput("verbose","No internalComparison provided, skipping");
+    }
+
     #get some data on these ips and their last x requests  
     gatherBasicIpInfoApache();	
 

@@ -72,7 +72,7 @@ sub nginx_ban_output {
 		enhancedOutput("debug","**DEBUG: IP $ip is above ban threshold, checking ban status");
 
 
-		# This is where the ban db will come into play. do some sort of query to get all active nginx banned ips and generate ban file.
+		# This is where the ban db will come into play. do a query to get all active nginx banned ips and generate ban file.
 		#This used to set the type to the input plugin name, but this seemed silly. instead we use this plugin name and tag with the input
 		#search for active bans
 		my $ipBanSearch = $es->search(
@@ -136,9 +136,9 @@ sub nginx_ban_output {
 		    #we do nothing here since the ban is already active. 
 		}
 		else {
-		    enhancedOutput("debug","**DEBUG: found multiple bans for $ip, not sure what to do with this...");
+		    enhancedOutput("debug","**DEBUG: found multiple active bans for $ip, I am not sure what to do with this yet or how this would sanely happen...");
 		    print "\nWARNING: more then one active ban exists for $ip\n";
-		    #TODO: figure out how to handle this
+		    #TODO: figure out how to handle this 
 		}	    
 
 	    }

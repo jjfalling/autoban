@@ -21,8 +21,6 @@
 
 use warnings;
 
-#TODO: move to config
-my $banTheshold = 8;
 
 sub apache_filter() {
     enhancedOutput("verbose","\n\nRunning apache_filter\n");

@@ -145,9 +145,12 @@ else {
 
 
 
-#TODO, when enabling outputs, obey safe mode
+#when safemode is enabled, do not preform any actions. only gather data and report to the user. 
 if ($safe) {
-    print "\nAnd remember this: there is no more important safety rule than to wear these — safety glasses\nSafe mode is enabled. no bans will be created and you should use the -v flag\n";
+    print "\n\"And remember this: there is no more important safety rule than to wear these — safety glasses\" (Safe mode is enabled. no bans will be created)\n";
+    #enable verbose mode (-v) as this option is rather useless without it since the user will not see what would have been done
+    $verbose=1;
+
 }
 
 
@@ -225,7 +228,7 @@ Print a brief help message and exits.
 Print the manual page.
 
 =item B<-d, --debug> 
-Enable debug mode with a very high amount of output (debug lines start with **DEBUG). This will supercede the verbose flag
+Enable debug mode with a rather high amount of output (debug lines start with **DEBUG). This will supercede the verbose flag
 
 =item B<-v, --verbose> 
 Enable verbose messages
@@ -237,7 +240,7 @@ Run as a daeon
 Run in foreground. This will enable you to run autoban in the foreground, even if the daemon is running.
 
 =item B<-s,--safe>
-Run in safe mode. This will not preform any bans, but instead display what would have happened. This is useful if you want to run this in read only mode. You should also use the -v flag.
+Run in safe mode. This will not preform any bans, but instead display what would have happened. This is useful if you want to run this in read only mode. This will invoke verbose mode (-v)
 
 =item B<-V, --version> 
 Display program version 
