@@ -30,22 +30,25 @@ use Getopt::Long;
 use Fcntl qw(LOCK_EX LOCK_NB);
 use File::NFSLock;
 use Cwd 'abs_path';
+use File::Basename;
+
 
 #get offical elasticsearch module @ https://metacpan.org/pod/Search::Elasticsearch
 use Search::Elasticsearch;
 die "The Search::Elasticsearch module must be >= v1.11! You have v$Search::Elasticsearch::VERSION\n\n"
     unless $Search::Elasticsearch::VERSION >= 1.11;
 
-#get the path to autoban by using abs_path, then remove autoban.pl from name
+#get the full path by using abs_path, then remove the name of the program from the path.
 my $autobanPath = abs_path($0);
-$autobanPath =~ s/autoban.pl//;
+my $autobanFilename = basename(__FILE__);
+$autobanPath =~ s/$autobanFilename//;
+
 
 #Define config file
 my $configFile = "$autobanPath/autoban.cfg";
 
 #define program version
 my $autobanVersion = "0.0.1";
-
 
 my ($help, $man, $foreground, $debug, $verbose, $version, $daemon);
 our $safe;
@@ -58,9 +61,9 @@ GetOptions
      'man' => \$man,
      "d|debug" => \$debug,
      "D|daemon" => \$daemon,
-     "v|verbose" => \$verbose,     
+     "V|verbose" => \$verbose,     
      'f|foreground' => \$foreground,
-     "V|version" => \$version,
+     "v|version" => \$version,
      "s|safe" => \$safe) or pod2usage(2);
 
 pod2usage(-verbose => 1) if $help;
@@ -204,11 +207,11 @@ autoban [options]
        -h,-help         brief help message
        -man             full documentation
        -d,--debug       enable debug mode
-       -v,--verbose     enable verbose messages
+       -V,--verbose     enable verbose messages
        -D,--daemon      run as a daemon
        -f,--foreground  run in foreground
        -s,--safe        safe mode
-       -V,--version     display version
+       -v,--version     display version
 
 =head1 DESCRIPTION
 
@@ -230,7 +233,7 @@ Print the manual page.
 =item B<-d, --debug> 
 Enable debug mode with a rather high amount of output (debug lines start with **DEBUG). This will supercede the verbose flag
 
-=item B<-v, --verbose> 
+=item B<-V, --verbose> 
 Enable verbose messages
 
 =item B<-D, --daemon> 
@@ -242,7 +245,7 @@ Run in foreground. This will enable you to run autoban in the foreground, even i
 =item B<-s,--safe>
 Run in safe mode. This will not preform any bans, but instead display what would have happened. This is useful if you want to run this in read only mode. This will invoke verbose mode (-v)
 
-=item B<-V, --version> 
+=item B<-v, --version> 
 Display program version 
 
 =back
