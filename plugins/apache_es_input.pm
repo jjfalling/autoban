@@ -129,7 +129,6 @@ sub gatherBasicIpInfoApache {
 	}
 
 	
-        #$data->{'apache-es-input'}->{'ipData'}->{$ip}->$data->{$ip}->{'isCrawler'} = checkForCrawlers($ip);
         $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'hitCount'} = $num_reqs;
         
 	enhancedOutput("debug","**DEBUG: Inspecting $ip");
@@ -200,7 +199,7 @@ sub gatherBasicIpInfoApache {
 		if ($tempData->{'_source'}->{'cookies'} =~ /$autobanConfig->param('apache-es-input.cookie')/i){$hasCookie = "true";}
 	    }
 
-	    if ($tempData->{'_source'}->{'agent'} ne "-"){$hasUserAgent = "true";}
+	    if ($tempData->{'_source'}->{'agent'} ne "\"-\""){$hasUserAgent = "true";}
 	    if ($tempData->{'_source'}->{'verb'} =~ /post/i){$postActionCount++;}
 	    if ($tempData->{'_source'}->{'response'} !~ /$autobanConfig->param('apache-es-input.goodResponseCodes')/i){$tempBadResponseCount++;}
 	    if ($tempData->{'_source'}->{'request'} =~ /$autobanConfig->param('apache-es-input.writeUrl')/i){$writeUrlCount++;}

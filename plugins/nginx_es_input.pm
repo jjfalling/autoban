@@ -133,7 +133,8 @@ sub gatherBasicIpInfo {
 	enhancedOutput("debug","**DEBUG: Inspecting $ip");
 
 	#temp vars
-	my ($isLoggedIn, $postMethodPercentage, $postPercentage, $badResponseCodePercent, $varyUserAgent, $hasCookie, $hasUserAgent);
+	my ($isLoggedIn, $postMethodPercentage, $postPercentage, $badResponseCodePercent, $varyUserAgent, $hasCookie);
+	my $hasUserAgent = "false";
 	my $postActionCount = 0;
 	my $tempBadResponseCount = 0; 
 	my $writeUrlCount = 0;
@@ -196,7 +197,7 @@ sub gatherBasicIpInfo {
 		if ($tempData->{'_source'}->{'cookies'} =~ /$autobanConfig->param('nginx-es-input.cookie')/i){$hasCookie = "true";}
 	    }
 
-	    if ($tempData->{'_source'}->{'http_user_agent'} ne "-"){$hasUserAgent = "true";}
+	    if ($tempData->{'_source'}->{'http_user_agent'} ne "\"-\""){$hasUserAgent = "true";}
 	    if ($tempData->{'_source'}->{'request_method'} =~ /post/i){$postActionCount++;}
 	    if ($tempData->{'_source'}->{'status'} !~ /$autobanConfig->param('nginx-es-input.goodResponseCodes')/i){$tempBadResponseCount++;}
 	    if ($tempData->{'_source'}->{'requested_uri'} =~ /$autobanConfig->param('nginx-es-input.writeUrl')/i){$writeUrlCount++;}
