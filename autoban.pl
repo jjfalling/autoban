@@ -205,7 +205,7 @@ autoban [options]
 
      Options:
        -h,-help         brief help message
-       -man             full documentation
+       --man            full documentation
        -d,--debug       enable debug mode
        -V,--verbose     enable verbose messages
        -D,--daemon      run as a daemon
