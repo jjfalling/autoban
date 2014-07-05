@@ -77,11 +77,16 @@ if ($version) {
 # Before we do anything else, try to get an exclusive lock
 my $lock = File::NFSLock->new($0, LOCK_EX|LOCK_NB); 
 
-#unless we are running in the foreground, die if there is another copy
+#unless we are running in the foreground, die if there is another copy running
 unless ($foreground) {
     die "\nERROR: I am already running and I will not run another demonized copy!\nTo run manually while the daemon is running, give the foreground flag. See help or the man page\n\n" unless $lock;
 }
 
+
+#TEMP, this is to force me to use the foreground flag to work on the daemon mode
+unless ($foreground) {
+  die "Sorry, daemon mode is not yet implimented, use the foreground flag (see --man/-h)\n\n";
+}
 
 #check if config file exists, and if not exit
 unless (-e $configFile) {
