@@ -33,9 +33,7 @@ my $num_purges=0;
 
 sub apache_es_input {
 
-    enhancedOutput("verbose","\n\nRunning apache_es_input\n");
-
-    enhancedOutput("verbose","Searching for the highest requesting ips");
+    outputHandler('DEBUG','apache_es_input','Searching for the highest requesting ips');
 
 
 
@@ -73,7 +71,7 @@ sub apache_es_input {
 	);
 
 
-    enhancedOutput("debug","**DEBUG: Search took $result->{'took'}ms");
+    outputHandler('DEBUG','apache_es_input',"Search took $result->{'took'}ms");
 
 
 
@@ -93,13 +91,13 @@ sub apache_es_input {
 	    $num_purges = $facetedData->{'ip'}->{$autobanConfig->param("apache-es-input.internalComparison")};
 	}
 	else {
-	    enhancedOutput("verbose","Looks like internal comparison has no data, using backup setting");
+	    outputHandler('INFO','apache_es_input','Looks like internal comparison has no data, using backup setting');
 	    $num_purges = $autobanConfig->param("apache-es-input.internalComparisonBackupCount");
 	}
 
     }
     else {
-	enhancedOutput("verbose","No internalComparison provided, skipping");
+	outputHandler('DEBUG','apache_es_input','No internalComparison provided, skipping');
     }
 
     #get some data on these ips and their last x requests  
@@ -112,7 +110,7 @@ sub apache_es_input {
 sub gatherBasicIpInfoApache {
     #look at each ip found
 
-    enhancedOutput("verbose","Looking at each of the highest requesting ips");
+    outputHandler('DEBUG','apache_es_input','Looking at each of the highest requesting ips');
 
     foreach my $ip (sort keys %{$facetedData->{'ip'}}) {
         #make a hash key/val for the current ip
@@ -131,7 +129,7 @@ sub gatherBasicIpInfoApache {
 	
         $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'hitCount'} = $num_reqs;
         
-	enhancedOutput("debug","**DEBUG: Inspecting $ip");
+	outputHandler('DEBUG','apache_es_input',"Inspecting $ip");
 
 	#temp vars
 	my ($isLoggedIn, $postMethodPercentage, $postPercentage, $badResponseCodePercent, $varyUserAgent, $hasCookie, $hasUserAgent);
@@ -172,7 +170,7 @@ sub gatherBasicIpInfoApache {
 
 
 
-	enhancedOutput("debug","**DEBUG: Search took $result2->{'took'}ms");
+	outputHandler('DEBUG','apache_es_input',"Search took $result2->{'took'}ms");
 
 
 	#figure out how many results there are and if greater then maxNumOfResults
@@ -194,7 +192,6 @@ sub gatherBasicIpInfoApache {
 	    #get data for each request out.         
 	    my $tempData = ($result2->{'hits'}->{'hits'}->[$i]);
 
-	    #TODO: make all of this happen in the config 
 	    if ($autobanConfig->param("apache-es-input.cookie")){
 		if ($tempData->{'_source'}->{'cookies'} =~ /$autobanConfig->param('apache-es-input.cookie')/i){$hasCookie = "true";}
 	    }

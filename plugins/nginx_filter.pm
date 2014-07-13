@@ -24,12 +24,7 @@ use warnings;
 
 
 sub nginx_filter() {
-    enhancedOutput("verbose","\n\nRunning nginx_filter\n");
-    nginxFlagForBan();
-}
-
-
-sub nginxFlagForBan() {
+ 
 
 
     #look through the list of ips, and 
@@ -65,21 +60,18 @@ sub nginxFlagForBan() {
 	#check if ip is at or above threashold for ban
 	if ($data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} >= $autobanConfig->param("nginx-filter.banThreshold")){ 
 	    $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banFlag'} = "true";
-	    enhancedOutput("verbose","Flagging IP: $ip for ban. COMMENT: $comment ");
+	    outputHandler('INFO','nginx_filter',"Flagging IP: $ip for ban. COMMENT: $comment ");
 
 	}
 	else{
 	    $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banFlag'} = "false";
-	    enhancedOutput("debug","**DEBUG: IP: $ip COMMENT: $comment ");
+	    outputHandler('DEBUG','nginx_filter',"IP: $ip COMMENT: $comment ");
 
 	}
 
     }
-
-    
-    
+  
 }
-
 
 
 #required to import

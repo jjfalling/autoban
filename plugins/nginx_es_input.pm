@@ -32,9 +32,7 @@ my $num_purges;
 
 sub nginx_es_input {
 
-    enhancedOutput("verbose","\n\nRunning nginx_es_input\n");
-
-    enhancedOutput("verbose","Searching for the highest requesting ips");
+    outputHandler('INFO','nginx_es_input','Searching for the highest requesting ips');
 
 
 
@@ -72,7 +70,7 @@ sub nginx_es_input {
 	);
 
 
-    enhancedOutput("debug","**DEBUG: Search took $result->{'took'}ms");
+    outputHandler('DEBUG','nginx_es_input',"Search took $result->{'took'}ms");
 
 
     #my (@bad, $facet);
@@ -90,13 +88,13 @@ sub nginx_es_input {
 	    $num_purges = $facetedData->{'ip'}->{$autobanConfig->param("nginx-es-input.internalComparison")};
 	}
 	else {
-	    enhancedOutput("verbose","Looks like internal comparison has no data, using backup setting");
+	    outputHandler('INFO','nginx_es_input','Looks like internal comparison has no data, using backup setting');
 	    $num_purges = $autobanConfig->param("nginx-es-input.internalComparisonBackupCount");
 	}
 
     }
     else {
-	enhancedOutput("verbose","No internalComparison provided, skipping");
+	outputHandler('INFO','nginx_es_input','No internalComparison provided, skipping');
     }
 
     
@@ -110,7 +108,7 @@ sub nginx_es_input {
 sub gatherBasicIpInfo {
     #look at each ip found
 
-    enhancedOutput("verbose","Looking at each of the highest requesting ips");
+    outputHandler('DEBUG','nginx_es_input','Looking at each of the highest requesting ips');
 
     foreach my $ip (sort keys %{$facetedData->{'ip'}}) {
         #make a hash key/val for the current ip
@@ -130,7 +128,7 @@ sub gatherBasicIpInfo {
         #$data->{'nginx-es-input'}->{'ipData'}->{$ip}->$data->{$ip}->{'isCrawler'} = checkForCrawlers($ip);
         $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'hitCount'} = $num_reqs;
         
-	enhancedOutput("debug","**DEBUG: Inspecting $ip");
+	outputHandler('DEBUG','nginx_es_input',"Inspecting $ip");
 
 	#temp vars
 	my ($isLoggedIn, $postMethodPercentage, $postPercentage, $badResponseCodePercent, $varyUserAgent, $hasCookie);
@@ -171,7 +169,7 @@ sub gatherBasicIpInfo {
 	    );
 
 
-	enhancedOutput("debug","**DEBUG: Search took $result2->{'took'}ms");
+	outputHandler('DEBUG','nginx_es_input',"Search took $result2->{'took'}ms");
 
 
 	#figure out how many results there are and if greater then maxNumOfResults

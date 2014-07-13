@@ -33,6 +33,7 @@ use Cwd 'abs_path';
 use File::Basename;
 use Time::HiRes qw(usleep ualarm gettimeofday tv_interval);
 use Log::Log4perl qw(:easy);
+use feature "switch";
 
 
 #get offical elasticsearch module @ https://metacpan.org/pod/Search::Elasticsearch
@@ -45,14 +46,13 @@ my $autobanPath = abs_path($0);
 my $autobanFilename = basename(__FILE__);
 $autobanPath =~ s/$autobanFilename//;
 
-
 #Define config file
 my $configFile = "$autobanPath/autoban.cfg";
 
 #define program version
 my $autobanVersion = "0.0.1";
 
-my ($help, $man, $foreground, $color, $loglevel, $version, $daemon);
+my ($help, $man, $foreground, $loglevel, $version, $daemon);
 our $safe; #<-- this should probally not be handled as a global....
 my @plugins;
 
@@ -62,7 +62,6 @@ Getopt::Long::Configure('bundling');
 GetOptions
     ('h|help|?' => \$help, 
      'man' => \$man,
-     "C|color" => \$color,
      "d|debug" => \$debug,
      "l|loglevel=s" => \$loglevel,
      'f|foreground' => \$foreground,
@@ -99,48 +98,36 @@ else {
 my $lock = File::NFSLock->new($0, LOCK_EX|LOCK_NB); 
 
 #set up the logging.
-if ($foreground) {
+my $rootLoggerConfig;
+#finish setting up logging
+Log::Log4perl::init("$autobanPath/logging.cfg");
 
-    #we are running in the foreground then log to stdout and continue running. 
+our $autobanLog = Log::Log4perl->get_logger();
 
 
-    #control color output depending on user request
-    if ($color){
+unless ($foreground) {
 
-      setupLogging();
-  Log::Log4perl->init(\ <<'EOT');
-log4perl.appender.Screen = \
-	     Log::Log4perl::Appender::ScreenColoredLevels
-EOT
-    }
-    else{
-  Log::Log4perl->init(\ <<'EOT');
-log4perl.appender.Screen = \
-	     Log::Log4perl::Appender::Screen
-EOT
-    }
-
-}
-else {
     #we are not running in the foreground check if there is another copy of this program running and die if so
-    die "\nFATAL: I am already running and I will not run another demonized copy!\nTo run manually while the daemon is running, give the foreground flag. See help or the man page\n\n" unless $lock;
-
-    #not running another copy, setup logging
-    Log::Log4perl->easy_init( { level   => $autobanLogLevel,
-                                 file    => ">>$autobanConfig->param('autoban.Logfile')"} );
+   outputHandler('FATALDIE', "autoban is already running and I will not run another demonized copy! To run autoban manually while the daemon is running, give the foreground flag. See help or the man page") unless $lock;
+ 
 }
+
+
 
 #Any output past this point should be handled by the logging system
-FATAL("Starting autoban v.$autobanVersion, please wait...");
-
+outputHandler('INFO','autoban','');
+outputHandler('INFO','autoban',"Starting autoban v.$autobanVersion, please wait...");
+outputHandler('INFO','autoban','');
 
 
 #check if running as root, if so give warning.
 if ( $< == 0 ) {
-    print "\n********************************************************\n";
-    print "* DANGERZONE: You are running autoban as root!         *\n";
-    print "* This is probably a horrible idea security wise...    *\n";
-    print "********************************************************\n\n\n"; 
+    outputHandler('ERROR','autoban','');
+    outputHandler('ERROR','autoban','********************************************************');
+    outputHandler('ERROR','autoban','*    DANGERZONE: You are running autoban as root!      *');
+    outputHandler('ERROR','autoban','*    This is probably a horrible idea security wise... *');
+    outputHandler('ERROR','autoban','********************************************************');
+    outputHandler('ERROR','autoban','');
 }
 
 #Define a HoHoHoL(?) to shove all of our data in. 
@@ -150,16 +137,17 @@ if ( $< == 0 ) {
 our $data;
 
 
-#create the shared es instance
+#create the shared es connection
 our $es = Search::Elasticsearch->new(
     cxn_pool => $autobanConfig->param('autoban.cnx_pool'),
     nodes => [$autobanConfig->param('autoban.esNodes')],
+    #log_to   => 'Stderr',
     #trace_to => 'Stderr',
-    ) || die "Cannot create new es instance: \$es\n";
-
+    ) || $autobanLog->logdie("Cannot create new es instance: $es");
+#TODO: the errorchecking ^^ will never happen as Search::Elasticsearch dies when it has an issue. Either I need to patch the module or figure out how to make it not kill us...
 
 #look through the plugin directories and load the plugins
-enhancedOutput("debug","**DEBUG: Checking for autoban index");
+outputHandler('DEBUG','autoban','Checking for autoban index');
 
 
 #TODO: when creating index, ensure autoban template exists and apply if not
@@ -169,22 +157,19 @@ my $autobanIndexStatus = $es->indices->exists(
     index   => $autobanConfig->param('autoban.esAutobanIndex')
     );
 unless ($autobanIndexStatus) {
-    print "WARNING: autboan's index (", $autobanConfig->param('autoban.esAutobanIndex'), ") was not found. This is normal if this is the first time running autoban, otherwise something delete it. I am creating the index in elasticsearch now.\n";
-    die "ERROR: could not create autoban index..." unless $es->indices->create(index=> $autobanConfig->param('autoban.esAutobanIndex'));
-    enhancedOutput("debug","**DEBUG: autoban index created");
+   outputHandler('DEBUG','autoban',"autboan's index (", $autobanConfig->param('autoban.esAutobanIndex'), ") was not found. This is normal if this is the first time running autoban, otherwise something delete it. I am creating the index in elasticsearch now.\n");
+    
+    outputHandler('FATALDIE','autoban',"ERROR: could not create autoban index...") unless $es->indices->create(index=> $autobanConfig->param('autoban.esAutobanIndex'));
+    outputHandler('DEBUG','autoban','autoban index created');
 }
 else {
-    enhancedOutput("debug","**DEBUG: autoban index exists");
+    outputHandler('DEBUG','autoban','autoban index exists');
 }
-
 
 
 #when safemode is enabled, do not preform any actions. only gather data and report to the user. 
 if ($safe) {
-    print "\n\"And remember this: there is no more important safety rule than to wear these — safety glasses\" (Safe mode is enabled. no bans will be created)\n";
-    #enable verbose mode (-v) as this option is rather useless without it since the user will not see what would have been done
-    $verbose=1;
-
+    outputHandler('INFO','autoban','Safe mode is enabled. No bans will be created');
 }
 
 
@@ -193,13 +178,15 @@ foreach my $runPlugin ($autobanConfig->param('autoban.runPlugins')) {
 
     #ensure the request plugin exists
     unless (-e "$autobanPath/plugins/$runPlugin.pm") {
-	print "\nERROR: Plugin $runPlugin was found! Plugin should be $autobanPath/plugins/$runPlugin.pm!\n";
-	exit 1;
+	outputHandler('FATALDIE','autoban',"Plugin $runPlugin was found! Plugin should be $autobanPath/plugins/$runPlugin.pm!");
     }
     require "$autobanPath/plugins/$runPlugin.pm";
 
     #work around strict not allowing string as a subroutine ref
     my $subref = \&$runPlugin;
+
+    outputHandler('INFO','autoban','');
+    outputHandler('INFO','autoban',"Running plugin $runPlugin");
 
     #get time just before running module
     my $modPluginTime = [gettimeofday];
@@ -209,40 +196,28 @@ foreach my $runPlugin ($autobanConfig->param('autoban.runPlugins')) {
     
     #get amt of time the plugin took to run
     my $elapsedPluginTime = tv_interval ($modPluginTime);
-    enhancedOutput("debug","**DEBUG: Plugin $runPlugin took $elapsedPluginTime seconds to run");
-
-
-}
-
-
-#This function will be used to give the user output, if they so desire.
-#TODO:  This should be replaced by some logging module as I will need to do logging to files
-sub enhancedOutput {
-    #we get two inputs, first is the type of message, second is the message
-    my $outputType = $_[0];
-    my $humanStatus = $_[1];
-    my $prepend = $_[2];
+    outputHandler('DEBUG','autoban',"Plugin $runPlugin took $elapsedPluginTime seconds to run");
     
-    if (($debug) && ($outputType eq "debug" || $outputType eq "verbose")){
-	print "$humanStatus\n";
-    }
-    elsif (($verbose) && ($outputType eq "verbose")){
-	print "$humanStatus\n";	
-    }
+
 }
 
+#function to handle all output from this program (fingers crossed...) 
+sub outputHandler {
+    my $logType = $_[0];
+    my $moduleName = $_[1];
+    my $logOutput = $_[2];
 
-sub setupLogging {
-  Log::Log4perl->init(\ <<'EOT');
-             log4perl.category = DEBUG, Screen
-             log4perl.appender.Screen = \
-	     Log::Log4perl::Appender::ScreenColoredLevels
-             log4perl.appender.Screen.layout = \
-	     Log::Log4perl::Layout::PatternLayout
-             log4perl.appender.Screen.layout.ConversionPattern = \
-	     %d %F{1} %L> %m %n
-EOT
-
+    given ($logType){
+	#I am using FATALDIE as a way to let other logging methods or tasks finish before we die
+   	when ('FATALDIE') {$autobanLog->logdie("$moduleName: $logOutput")}  
+	when ('FATAL') {$autobanLog->fatal("$moduleName: $logOutput")}  
+	when ('ERROR') {$autobanLog->error("$moduleName: $logOutput")}  
+	when ('WARN') {$autobanLog->warn("$moduleName: $logOutput")}  
+	when ('INFO') {$autobanLog->info("$moduleName: $logOutput")}  
+	when ('DEBUG') {$autobanLog->debug("$moduleName: $logOutput")} 
+	when ('TRACE') {$autobanLog->trace("$moduleName: $logOutput")} 
+	default  {$autobanLog->logcluck("$moduleName: AUTOBAN INTERNAL ERROR: unknown logType passed to outputHandler!")} 
+    }
 
 }
 
@@ -259,7 +234,6 @@ autoban - Realtime attack and abuse defence and intrusion prevention
 autoban [options]
 
      Options:
-       -C,--color       enabled colored text (in foreground mode)
        -D,--daemon      run as a daemon
        -f,--foreground  run in foreground
        -h,-help         brief help message
@@ -278,9 +252,6 @@ If using a flag that sets an option that is also set in the config, the flag val
 No options are required
 
 =over 8
-
-=item B<-C, --color> 
-Use colored text when running in foreground mode
 
 =item B<-D, --daemon> 
 Run as a daeon

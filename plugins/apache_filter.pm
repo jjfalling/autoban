@@ -23,13 +23,6 @@ use warnings;
 
 
 sub apache_filter() {
-    enhancedOutput("verbose","\n\nRunning apache_filter\n");
-    apacheFlagForBan();
-}
-
-
-sub apacheFlagForBan() {
-
 
 
     #look through the list of ips, and 
@@ -65,17 +58,15 @@ sub apacheFlagForBan() {
 	#check if ip is at or above threashold for ban
 	if ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} >= $autobanConfig->param("apache-filter.banThreshold")){ 
 	    $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banFlag'} = "true";
-	    enhancedOutput("verbose","Flagging IP: $ip for ban. COMMENT: $comment ");
+	    outputHandler('INFO','autoban',"Flagging IP: $ip for ban. COMMENT: $comment ");
 	}
 	else{
 	    $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banFlag'} = "false";
-	    enhancedOutput("debug","**DEBUG: IP: $ip COMMENT: $comment ");
+	    outputHandler('DEBUG','autoban',"IP: $ip COMMENT: $comment ");
 
 	}
 
     }
-
-    
     
 }
 
