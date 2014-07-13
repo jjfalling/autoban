@@ -62,7 +62,6 @@ Getopt::Long::Configure('bundling');
 GetOptions
     ('h|help|?' => \$help, 
      'man' => \$man,
-     "d|debug" => \$debug,
      "l|loglevel=s" => \$loglevel,
      'f|foreground' => \$foreground,
      "v|version" => \$version,
@@ -279,6 +278,6 @@ Display program version
 
 =head1 CHANGELOG
 
-B<0.1> 12-10-2013 Initial release. All future releases until there is a stable product will be under this version. 
+B<0.0.1> 12-10-2013 Initial release. All future releases until there is a stable product will be under this version. 
 
 =cut
