@@ -87,7 +87,8 @@ unless (-e $configFile) {
 #set the log level via the flag or fall back to the config
 my $autobanLogLevel;
 if ($loglevel){
-    $autobanLogLevel = $loglevel;
+    #use uc to ensure upper case
+    $autobanLogLevel = uc $loglevel;
 }
 else {
     $autobanLogLevel = $autobanConfig->param('autoban.LogLevel');
@@ -96,19 +97,22 @@ else {
 # Before we do anything else, try to get an exclusive lock
 my $lock = File::NFSLock->new($0, LOCK_EX|LOCK_NB); 
 
+
+
 #set up the logging.
-my $rootLoggerConfig;
+#my $rootLoggerConfig;
+our $rootLoggerConfig = "DEBUG, LOGFILE";
+
 #finish setting up logging
 Log::Log4perl::init("$autobanPath/logging.cfg");
-
 our $autobanLog = Log::Log4perl->get_logger();
 
 
 unless ($foreground) {
 
     #we are not running in the foreground check if there is another copy of this program running and die if so
-   outputHandler('FATALDIE', "autoban is already running and I will not run another demonized copy! To run autoban manually while the daemon is running, give the foreground flag. See help or the man page") unless $lock;
- 
+    outputHandler('FATALDIE', "autoban is already running and I will not run another demonized copy! To run autoban manually while the daemon is running, give the foreground flag. See help or the man page") unless $lock;
+    
 }
 
 
@@ -245,7 +249,22 @@ sub outputHandler {
 
 }
 
-#this is the autoban template
+#this configures the root logger with what appender and log level we want
+sub configRootLogger {
+
+    my $logAppender;
+    if ($foreground) {
+	$logAppender='SCREEN';
+	
+    }else {
+	$logAppender='LOGFILE';
+    }
+
+    return "$autobanLogLevel, $logAppender";
+}
+
+
+#this is the autoban index template
 sub updateAutobanTemplate {
     
     eval {
