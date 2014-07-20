@@ -31,12 +31,7 @@ use warnings;
 
 
 my $facetedData;
-#you need to use the MaxMind GeoIP Organization Database. TODO: Migrate away from this?
-my $geoOrgDatabase="/var/lib/GeoIP/GeoIPOrg.dat";
-my $crawlers="microsoft|yandex|yahoo|google";
 my $result2;
-
-my $banTheshold = 9;
 
 
 sub nginx_ban_output {
@@ -44,7 +39,7 @@ sub nginx_ban_output {
     my $nginxBanFileWritable=0;
 
 
-    outputHandler('INFO','nginx_ban_output',"looping through the ban ips");
+    outputHandler('DEBUG','nginx_ban_output',"looping through the ban ips");
 
 
     #get current GMT date in format YYYYMMDDHHMM, as an int
@@ -57,7 +52,7 @@ sub nginx_ban_output {
     
     #check to see what inputs we are looking at
     foreach my $plugin ($autobanConfig->param('nginx-ban-output.plugins')){
-	outputHandler('INFO','nginx_ban_output',"looking at input plugin: $plugin");
+	outputHandler('DEBUG','nginx_ban_output',"looking at input plugin: $plugin");
 
 	foreach my $ip (sort keys %{$data->{$plugin}->{'ipData'}}) {
 	    #strip the trailing comma from the string
@@ -66,7 +61,7 @@ sub nginx_ban_output {
 
 	    
 	    #if above threshold, see if we should ban it
-	    if ($data->{$plugin}->{'ipData'}->{$ip}->{'banScore'} >= $banTheshold){
+	    if ($data->{$plugin}->{'ipData'}->{$ip}->{'banScore'} >= $autobanConfig->param('nginx-ban-output.banTheshold')){
 		$banCount=1;
 		outputHandler('DEBUG','nginx_ban_output',"IP $ip is above ban threshold, checking ban status");
 
@@ -145,7 +140,7 @@ sub nginx_ban_output {
 	
 
 	if ($banCount == 0){
-	   outputHandler('INFO','nginx_ban_output','I found nothing new to ban on this run');
+	   outputHandler('DEBUG','nginx_ban_output','I found nothing new to ban on this run');
 	}	
 
 
@@ -153,15 +148,12 @@ sub nginx_ban_output {
 
 #if safe mode is in, no not generate ban file    
 if ($safe) {
-    outputHandler('INFO','nginx_ban_output','Not generating nginx ban file due to safe flag');
+    outputHandler('DEBUG','nginx_ban_output','Not generating nginx ban file due to safe flag');
 }
 else{
 
     #run a facted search on active bans by ip. and sort for good measure. 
-    outputHandler('INFO','nginx_ban_output','Getting all active banned ips');
-
-    #adding a sleep to try to work around newly added data not showing up in the search. 
-    sleep 5;
+    outputHandler('DEBUG','nginx_ban_output','Getting all active banned ips');
 
     my $activeBanResult = $es->search(
 	index => $autobanConfig->param('autoban.esAutobanIndex'),
@@ -196,7 +188,7 @@ else{
 	);
     outputHandler('DEBUG','nginx_ban_output',"Search took $activeBanResult->{'took'}ms, returned $activeBanResult->{'facets'}->{'ipFacet'}->{'total'} banned ips");
 
-    outputHandler('INFO','nginx_ban_output','Generating nginx ban file');
+    outputHandler('DEBUG','nginx_ban_output','Generating nginx ban file');
 
 
     unless (-e $autobanConfig->param('nginx-ban-output.location')) {
