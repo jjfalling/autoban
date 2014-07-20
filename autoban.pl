@@ -49,8 +49,8 @@ $autobanPath =~ s/$autobanFilename//;
 #Define config file
 my $configFile = "$autobanPath/autoban.cfg";
 
-#define program version
-my $autobanVersion = "0.0.1";
+#define program version (major, minor, patch)
+my $autobanVersion = "0.1.0";
 
 my ($help, $man, $foreground, $loglevel, $version, $daemon);
 our $safe; #<-- this should probally not be handled as a global....
@@ -121,12 +121,12 @@ outputHandler('INFO','autoban','');
 
 #check if running as root, if so give warning.
 if ( $< == 0 ) {
-    outputHandler('ERROR','autoban','');
-    outputHandler('ERROR','autoban','********************************************************');
-    outputHandler('ERROR','autoban','*    DANGERZONE: You are running autoban as root!      *');
-    outputHandler('ERROR','autoban','*    This is probably a horrible idea security wise... *');
-    outputHandler('ERROR','autoban','********************************************************');
-    outputHandler('ERROR','autoban','');
+    outputHandler('WARN','autoban','');
+    outputHandler('WARN','autoban','********************************************************');
+    outputHandler('WARN','autoban','*    DANGERZONE: You are running autoban as root!      *');
+    outputHandler('WARN','autoban','*    This is probably a horrible idea security wise... *');
+    outputHandler('WARN','autoban','********************************************************');
+    outputHandler('WARN','autoban','');
 }
 
 #Define a HoHoHoL(?) to shove all of our data in. 
@@ -143,26 +143,51 @@ our $es = Search::Elasticsearch->new(
     #log_to   => 'Stderr',
     #trace_to => 'Stderr',
     ) || $autobanLog->logdie("Cannot create new es instance: $es");
-#TODO: the errorchecking ^^ will never happen as Search::Elasticsearch dies when it has an issue. Either I need to patch the module or figure out how to make it not kill us...
+
+
+#ensure the autoban template exists and update it 
+outputHandler('DEBUG','autoban','Updating autoban index template');
+updateAutobanTemplate();
+outputHandler('DEBUG','autoban','autoban template updated');
+
 
 #look through the plugin directories and load the plugins
-outputHandler('DEBUG','autoban','Checking for autoban index');
+outputHandler('DEBUG','autoban','Checking that autoban index exists');
 
-
-#TODO: when creating index, ensure autoban template exists and apply if not
 #ensure the autoban index exists, if not, throw a warning and create it, exit if we cannot
-#$es->indices->create(index=> $autobanConfig->param('autoban.esNodes'));
-my $autobanIndexStatus = $es->indices->exists(
-    index   => $autobanConfig->param('autoban.esAutobanIndex')
-    );
+my $autobanIndexStatus;
+eval {$autobanIndexStatus = $es->indices->exists(index => $autobanConfig->param('autoban.esAutobanIndex'));};
+outputHandler('FATALDIE','autoban',"Problem connecting to elasticsearch: $@") if $@;
+
+
+#unless the autoban index exists, we create it
 unless ($autobanIndexStatus) {
-   outputHandler('DEBUG','autoban',"autboan's index (", $autobanConfig->param('autoban.esAutobanIndex'), ") was not found. This is normal if this is the first time running autoban, otherwise something delete it. I am creating the index in elasticsearch now.\n");
-    
-    outputHandler('FATALDIE','autoban',"ERROR: could not create autoban index...") unless $es->indices->create(index=> $autobanConfig->param('autoban.esAutobanIndex'));
+    outputHandler('WARN','autoban',"autboan's index was not found. This is normal if this is the first time running autoban, otherwise something deleted it!");
+    $es->indices->create(index=> $autobanConfig->param('autoban.esAutobanIndex'));
+    outputHandler('FATALDIE','autoban',"ERROR: could not create autoban index: $@") if $@;
     outputHandler('DEBUG','autoban','autoban index created');
-}
-else {
+
+}else {
     outputHandler('DEBUG','autoban','autoban index exists');
+
+    #ensure the autoban index is open 
+    my $autobanIndexState;
+    eval {$autobanIndexState = $es->cluster->state(index => $autobanConfig->param('autoban.esAutobanIndex'), metric => 'metadata')};
+    outputHandler('ERROR','autoban',"Problem connecting to elasticsearch: $@") if $@;
+
+    #if the index is not open, try to open it
+    if ( $autobanIndexState->{'metadata'}->{'indices'}->{$autobanConfig->param('autoban.esAutobanIndex')}->{'state'} ne 'open' ) {
+	outputHandler('WARN','autoban',"The autoban index is not open, attempting to open index");
+
+	eval { $es->indices->open(index => $autobanConfig->param('autoban.esAutobanIndex'));};
+	outputHandler('FATALDIE','autoban',"Could not open autoban index: $@") if $@;
+	outputHandler('DEBUG','autoban','Opened autoban index');
+
+    }else {
+	outputHandler('DEBUG','autoban','autoban index is open');
+
+    }
+
 }
 
 
@@ -220,6 +245,52 @@ sub outputHandler {
 
 }
 
+#this is the autoban template
+sub updateAutobanTemplate {
+    
+    eval {
+	$es->indices->put_template(
+	    name => 'autoban',               
+	    body => {
+		template => $autobanConfig->param('autoban.esAutobanIndex'),
+		settings => {
+		    'index.analysis.analyzer.default.stopwords' => '_none_',
+		    'index.analysis.analyzer.default.type' => 'standard',
+		    'index.number_of_shards' => '3',
+		    'index.number_of_replicas' => '1'
+		},
+			'mappings' => {
+			    '_default_' => {
+				'dynamic_templates' => [ {
+				    'string_fields' => {
+					'mapping' => {
+					    'type' => 'multi_field',
+					    'fields' => {
+						'raw' => {
+						    'index' => 'not_analyzed',
+						    'ignore_above' => 256,
+						    'type' => 'string'
+						},
+							'{name}' => {
+							    'index' => 'analyzed',
+							    'omit_norms' => 'true',
+							    'type' => 'string'
+						    }
+					    }
+					},
+					'match' => '*',
+					'match_mapping_type' => 'string'
+				    }
+							 } ]
+			    }
+		    }
+
+	    }           
+	    );
+    };
+    outputHandler('FATALDIE','autoban',"Problem connecting to elasticsearch: $@") if $@;
+
+}
 
 
 __END__
@@ -278,6 +349,6 @@ Display program version
 
 =head1 CHANGELOG
 
-B<0.0.1> 12-10-2013 Initial release. All future releases until there is a stable product will be under this version. 
+B<0.1.0> 12-10-2013 Initial release. All future releases until there is a stable product will be under this version. 
 
 =cut
