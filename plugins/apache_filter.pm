@@ -58,11 +58,11 @@ sub apache_filter() {
 	#check if ip is at or above threashold for ban
 	if ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} >= $autobanConfig->param("apache-filter.banThreshold")){ 
 	    $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banFlag'} = "true";
-	    outputHandler('INFO','autoban',"Flagging IP: $ip for ban. COMMENT: $comment ");
+	    autoban::Logging::OutputHandler('INFO','autoban',"Flagging IP: $ip for ban. COMMENT: $comment ");
 	}
 	else{
 	    $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banFlag'} = "false";
-	    outputHandler('DEBUG','autoban',"IP: $ip COMMENT: $comment ");
+	    autoban::Logging::OutputHandler('DEBUG','autoban',"IP: $ip COMMENT: $comment ");
 
 	}
 

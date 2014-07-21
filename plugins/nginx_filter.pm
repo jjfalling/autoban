@@ -60,12 +60,12 @@ sub nginx_filter() {
 	#check if ip is at or above threashold for ban
 	if ($data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} >= $autobanConfig->param("nginx-filter.banThreshold")){ 
 	    $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banFlag'} = "true";
-	    outputHandler('INFO','nginx_filter',"Flagging IP: $ip for ban. COMMENT: $comment ");
+	    autoban::Logging::OutputHandler('INFO','nginx_filter',"Flagging IP: $ip for ban. COMMENT: $comment ");
 
 	}
 	else{
 	    $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banFlag'} = "false";
-	    outputHandler('DEBUG','nginx_filter',"IP: $ip COMMENT: $comment ");
+	    autoban::Logging::OutputHandler('DEBUG','nginx_filter',"IP: $ip COMMENT: $comment ");
 
 	}
 

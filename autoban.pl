@@ -19,41 +19,48 @@
 #*   You should have received a copy of the GNU General Public License      *
 #*   along with this program.  If not, see <http://www.gnu.org/licenses/>.  *
 #****************************************************************************
+package autoban;
 
+use feature "switch";
 
 use strict;
 use warnings;
+
 use Data::Dumper;
 use Config::Simple;
 use Pod::Usage;
 use Getopt::Long;
 use Fcntl qw(LOCK_EX LOCK_NB);
 use File::NFSLock;
-use Cwd 'abs_path';
-use File::Basename;
 use Time::HiRes qw(usleep ualarm gettimeofday tv_interval);
 use Log::Log4perl qw(:easy);
-use feature "switch";
-
+use FindBin;     
 
 #get offical elasticsearch module @ https://metacpan.org/pod/Search::Elasticsearch
 use Search::Elasticsearch;
 die "The Search::Elasticsearch module must be >= v1.11! You have v$Search::Elasticsearch::VERSION\n\n"
     unless $Search::Elasticsearch::VERSION >= 1.11;
+           
+use lib "$FindBin::Bin/lib"; 
+use autoban::Logging;
 
-#get the full path by using abs_path, then remove the name of the program from the path.
-my $autobanPath = abs_path($0);
-my $autobanFilename = basename(__FILE__);
-$autobanPath =~ s/$autobanFilename//;
+#if we get an interupt, run function to exit
+$SIG{INT} = \&interrupt;
+$SIG{TERM} = \&interrupt;
+$SIG{HUP} = \&interrupt;
+
+
+#store the path to autoban as found by FindBin
+my $autobanPath = "$FindBin::Bin";
 
 #Define config file
-my $configFile = "$autobanPath/autoban.cfg";
+my $configFile = "$autobanPath/conf/autoban.cfg";
 
 #define program version (major, minor, patch)
 my $autobanVersion = "0.1.0";
 
-my ($help, $man, $foreground, $loglevel, $version, $daemon);
-our $safe; #<-- this should probally not be handled as a global....
+my ($help, $man, $loglevel, $version);
+our ($safe, $foreground); #<-- this should probally not be handled as a global....
 my @plugins;
 
 #TODO: fix whole debug vs verbose thing and replace with logging system
@@ -85,7 +92,7 @@ unless (-e $configFile) {
 }
 
 #set the log level via the flag or fall back to the config
-my $autobanLogLevel;
+our $autobanLogLevel;
 if ($loglevel){
     #use uc to ensure upper case
     $autobanLogLevel = uc $loglevel;
@@ -98,39 +105,45 @@ else {
 my $lock = File::NFSLock->new($0, LOCK_EX|LOCK_NB); 
 
 
-
-#set up the logging.
-#my $rootLoggerConfig;
-our $rootLoggerConfig = "DEBUG, LOGFILE";
-
 #finish setting up logging
-Log::Log4perl::init("$autobanPath/logging.cfg");
+Log::Log4perl::init("$autobanPath/conf/logging.cfg");
 our $autobanLog = Log::Log4perl->get_logger();
 
+#capture die errors
+$SIG{__DIE__} = sub {
+        if($^S) {
+            # We're in an eval {} and don't want log
+            # this message but catch it later
+            return;
+        }
+        $Log::Log4perl::caller_depth++;
+	autoban::Logging::OutputHandler('FATAL','autoban',"@_");
+        die @_; # Now terminate really
+    };
 
 unless ($foreground) {
 
     #we are not running in the foreground check if there is another copy of this program running and die if so
-    outputHandler('FATALDIE', "autoban is already running and I will not run another demonized copy! To run autoban manually while the daemon is running, give the foreground flag. See help or the man page") unless $lock;
+    autoban::Logging::OutputHandler('FATALDIE', "autoban is already running and I will not run another demonized copy! To run autoban manually while the daemon is running, give the foreground flag. See help or the man page") unless $lock;
     
 }
 
 
 
 #Any output past this point should be handled by the logging system
-outputHandler('INFO','autoban','');
-outputHandler('INFO','autoban',"Starting autoban v.$autobanVersion, please wait...");
-outputHandler('INFO','autoban','');
+autoban::Logging::OutputHandler('INFO','autoban','');
+autoban::Logging::OutputHandler('INFO','autoban',"Starting autoban v.$autobanVersion, please wait...");
+autoban::Logging::OutputHandler('INFO','autoban','');
 
 
 #check if running as root, if so give warning.
 if ( $< == 0 ) {
-    outputHandler('WARN','autoban','');
-    outputHandler('WARN','autoban','********************************************************');
-    outputHandler('WARN','autoban','*    DANGERZONE: You are running autoban as root!      *');
-    outputHandler('WARN','autoban','*    This is probably a horrible idea security wise... *');
-    outputHandler('WARN','autoban','********************************************************');
-    outputHandler('WARN','autoban','');
+    autoban::Logging::OutputHandler('WARN','autoban','');
+    autoban::Logging::OutputHandler('WARN','autoban','********************************************************');
+    autoban::Logging::OutputHandler('WARN','autoban','*    DANGERZONE: You are running autoban as root!      *');
+    autoban::Logging::OutputHandler('WARN','autoban','*    This is probably a horrible idea security wise... *');
+    autoban::Logging::OutputHandler('WARN','autoban','********************************************************');
+    autoban::Logging::OutputHandler('WARN','autoban','');
 }
 
 #Define a HoHoHoL(?) to shove all of our data in. 
@@ -138,6 +151,12 @@ if ( $< == 0 ) {
 # the format will be data = {plugin} => {ipData} => [info about the ip]
 #                                       {pluginData} => (varies by plugin)
 our $data;
+
+
+#when safemode is enabled, do not preform any actions. only gather data and report to the user. 
+if ($safe) {
+    autoban::Logging::OutputHandler('INFO','autoban','Safe mode is enabled. No bans will be created');
+}
 
 
 #create the shared es connection
@@ -150,122 +169,135 @@ our $es = Search::Elasticsearch->new(
 
 
 #ensure the autoban template exists and update it 
-outputHandler('DEBUG','autoban','Updating autoban index template');
+autoban::Logging::OutputHandler('DEBUG','autoban','Updating autoban index template');
 updateAutobanTemplate();
-outputHandler('DEBUG','autoban','autoban template updated');
+autoban::Logging::OutputHandler('DEBUG','autoban','autoban template updated');
 
 
-#look through the plugin directories and load the plugins
-outputHandler('DEBUG','autoban','Checking that autoban index exists');
+###MAIN 
 
-#ensure the autoban index exists, if not, throw a warning and create it, exit if we cannot
-my $autobanIndexStatus;
-eval {$autobanIndexStatus = $es->indices->exists(index => $autobanConfig->param('autoban.esAutobanIndex'));};
-outputHandler('FATALDIE','autoban',"Problem connecting to elasticsearch: $@") if $@;
-
-
-#unless the autoban index exists, we create it
-unless ($autobanIndexStatus) {
-    outputHandler('WARN','autoban',"autboan's index was not found. This is normal if this is the first time running autoban, otherwise something deleted it!");
-    $es->indices->create(index=> $autobanConfig->param('autoban.esAutobanIndex'));
-    outputHandler('FATALDIE','autoban',"ERROR: could not create autoban index: $@") if $@;
-    outputHandler('DEBUG','autoban','autoban index created');
+#if foreground flag given, run only once
+if ($foreground) {
+    mainSub();
+    exit 0;
 
 }else {
-    outputHandler('DEBUG','autoban','autoban index exists');
+    #run forever (poor mans daemon for now)
+    while (1) {
+	mainSub();
+	sleep $autobanConfig->param('autoban.runInterval');
 
-    #ensure the autoban index is open 
-    my $autobanIndexState;
-    eval {$autobanIndexState = $es->cluster->state(index => $autobanConfig->param('autoban.esAutobanIndex'), metric => 'metadata')};
-    outputHandler('ERROR','autoban',"Problem connecting to elasticsearch: $@") if $@;
+    }
+}
 
-    #if the index is not open, try to open it
-    if ( $autobanIndexState->{'metadata'}->{'indices'}->{$autobanConfig->param('autoban.esAutobanIndex')}->{'state'} ne 'open' ) {
-	outputHandler('WARN','autoban',"The autoban index is not open, attempting to open index");
+###END MAIN
 
-	eval { $es->indices->open(index => $autobanConfig->param('autoban.esAutobanIndex'));};
-	outputHandler('FATALDIE','autoban',"Could not open autoban index: $@") if $@;
-	outputHandler('DEBUG','autoban','Opened autoban index');
+
+#handle interrupts
+########################################
+sub interrupt {
+########################################
+    autoban::Logging::OutputHandler('ERROR','autoban','Received an interupt, shutting down....');
+    exit;
+}
+
+
+#sanity checks around the autoban index
+########################################
+sub checkAutobanIndex {
+########################################
+
+    #look through the plugin directories and load the plugins
+    autoban::Logging::OutputHandler('DEBUG','autoban','Checking that autoban index exists');
+
+    #ensure the autoban index exists, if not, throw a warning and create it, exit if we cannot
+    my $autobanIndexStatus;
+    eval {$autobanIndexStatus = $es->indices->exists(index => $autobanConfig->param('autoban.esAutobanIndex'));};
+    autoban::Logging::OutputHandler('FATALDIE','autoban',"Problem connecting to elasticsearch: $@") if $@;
+
+
+    #unless the autoban index exists, we create it
+    unless ($autobanIndexStatus) {
+	autoban::Logging::OutputHandler('WARN','autoban',"autboan's index was not found. This is normal if this is the first time running autoban, otherwise something deleted it!");
+	$es->indices->create(index=> $autobanConfig->param('autoban.esAutobanIndex'));
+	autoban::Logging::OutputHandler('FATALDIE','autoban',"ERROR: could not create autoban index: $@") if $@;
+	autoban::Logging::OutputHandler('DEBUG','autoban','autoban index created');
 
     }else {
-	outputHandler('DEBUG','autoban','autoban index is open');
+	autoban::Logging::OutputHandler('DEBUG','autoban','autoban index exists');
+
+	#ensure the autoban index is open 
+	my $autobanIndexState;
+	eval {$autobanIndexState = $es->cluster->state(index => $autobanConfig->param('autoban.esAutobanIndex'), metric => 'metadata')};
+	autoban::Logging::OutputHandler('ERROR','autoban',"Problem connecting to elasticsearch: $@") if $@;
+
+	#if the index is not open, try to open it
+	if ( $autobanIndexState->{'metadata'}->{'indices'}->{$autobanConfig->param('autoban.esAutobanIndex')}->{'state'} ne 'open' ) {
+	    autoban::Logging::OutputHandler('WARN','autoban',"The autoban index is not open, attempting to open index");
+
+	    eval { $es->indices->open(index => $autobanConfig->param('autoban.esAutobanIndex'));};
+	    autoban::Logging::OutputHandler('FATALDIE','autoban',"Could not open autoban index: $@") if $@;
+	    autoban::Logging::OutputHandler('DEBUG','autoban','Opened autoban index');
+
+	}else {
+	    autoban::Logging::OutputHandler('DEBUG','autoban','autoban index is open');
+
+	}
 
     }
 
 }
 
 
-#when safemode is enabled, do not preform any actions. only gather data and report to the user. 
-if ($safe) {
-    outputHandler('INFO','autoban','Safe mode is enabled. No bans will be created');
-}
+#this is the main autoban function
+########################################
+sub mainSub {
+########################################
+    #setup timer for stats reasons
+    my $autobanTime = [gettimeofday];
 
+    #run some sanity checks on the autoban index
+    checkAutobanIndex();
 
-#load and run plugins specified in config
-foreach my $runPlugin ($autobanConfig->param('autoban.runPlugins')) {
+    #load and run plugins specified in config
+    foreach my $runPlugin ($autobanConfig->param('autoban.runPlugins')) {
 
-    #ensure the request plugin exists
-    unless (-e "$autobanPath/plugins/$runPlugin.pm") {
-	outputHandler('FATALDIE','autoban',"Plugin $runPlugin was found! Plugin should be $autobanPath/plugins/$runPlugin.pm!");
-    }
-    require "$autobanPath/plugins/$runPlugin.pm";
+	#ensure the request plugin exists
+	unless (-e "$autobanPath/plugins/$runPlugin.pm") {
+	    autoban::Logging::OutputHandler('FATALDIE','autoban',"Plugin $runPlugin was found! Plugin should be $autobanPath/plugins/$runPlugin.pm!");
+	}
+	require "$autobanPath/plugins/$runPlugin.pm";
 
-    #work around strict not allowing string as a subroutine ref
-    my $subref = \&$runPlugin;
+	#work around strict not allowing string as a subroutine ref
+	my $subref = \&$runPlugin;
 
-    outputHandler('INFO','autoban','');
-    outputHandler('INFO','autoban',"Running plugin $runPlugin");
+	autoban::Logging::OutputHandler('INFO','autoban','');
+	autoban::Logging::OutputHandler('INFO','autoban',"Running plugin $runPlugin");
 
-    #get time just before running module
-    my $modPluginTime = [gettimeofday];
+	#get time just before running module
+	my $modPluginTime = [gettimeofday];
 
-    #try to run the function
-    &$subref();
-    
-    #get amt of time the plugin took to run
-    my $elapsedPluginTime = tv_interval ($modPluginTime);
-    outputHandler('DEBUG','autoban',"Plugin $runPlugin took $elapsedPluginTime seconds to run");
-    
-
-}
-
-#function to handle all output from this program (fingers crossed...) 
-sub outputHandler {
-    my $logType = $_[0];
-    my $moduleName = $_[1];
-    my $logOutput = $_[2];
-
-    given ($logType){
-	#I am using FATALDIE as a way to let other logging methods or tasks finish before we die
-   	when ('FATALDIE') {$autobanLog->logdie("$moduleName: $logOutput")}  
-	when ('FATAL') {$autobanLog->fatal("$moduleName: $logOutput")}  
-	when ('ERROR') {$autobanLog->error("$moduleName: $logOutput")}  
-	when ('WARN') {$autobanLog->warn("$moduleName: $logOutput")}  
-	when ('INFO') {$autobanLog->info("$moduleName: $logOutput")}  
-	when ('DEBUG') {$autobanLog->debug("$moduleName: $logOutput")} 
-	when ('TRACE') {$autobanLog->trace("$moduleName: $logOutput")} 
-	default  {$autobanLog->logcluck("$moduleName: AUTOBAN INTERNAL ERROR: unknown logType passed to outputHandler!")} 
-    }
-
-}
-
-#this configures the root logger with what appender and log level we want
-sub configRootLogger {
-
-    my $logAppender;
-    if ($foreground) {
-	$logAppender='SCREEN';
+	#try to run the function
+	&$subref();
 	
-    }else {
-	$logAppender='LOGFILE';
+	#get amt of time the plugin took to run
+	my $elapsedPluginTime = tv_interval ($modPluginTime);
+	autoban::Logging::OutputHandler('DEBUG','autoban',"Plugin $runPlugin took $elapsedPluginTime seconds to run");
+	
     }
 
-    return "$autobanLogLevel, $logAppender";
+    my $elapsedAutobanTime = tv_interval ($autobanTime);
+    autoban::Logging::OutputHandler('INFO','autoban','');
+    autoban::Logging::OutputHandler('INFO','autoban','Completed this autoban run');
+    autoban::Logging::OutputHandler('DEBUG','autoban',"Run took $elapsedAutobanTime seconds");
+    autoban::Logging::OutputHandler('INFO','autoban','');
 }
 
 
 #this is the autoban index template
+########################################
 sub updateAutobanTemplate {
+########################################
     
     eval {
 	$es->indices->put_template(
@@ -303,13 +335,15 @@ sub updateAutobanTemplate {
 							 } ]
 			    }
 		    }
-
 	    }           
 	    );
     };
-    outputHandler('FATALDIE','autoban',"Problem connecting to elasticsearch: $@") if $@;
+    autoban::Logging::OutputHandler('FATALDIE','autoban',"Problem connecting to elasticsearch: $@") if $@;
 
 }
+
+
+
 
 
 __END__
@@ -323,7 +357,6 @@ autoban - Realtime attack and abuse defence and intrusion prevention
 autoban [options]
 
      Options:
-       -D,--daemon      run as a daemon
        -f,--foreground  run in foreground
        -h,-help         brief help message
        -l,--loglevel    logging level
@@ -342,11 +375,8 @@ No options are required
 
 =over 8
 
-=item B<-D, --daemon> 
-Run as a daeon
-
 =item B<-f, --foreground>
-Run in foreground. This will enable you to run autoban in the foreground, even if the daemon is running. This will also cause messages to go to stdout instead of the log file. 
+Run in foreground. This will enable you to run autoban in the foreground, even if the daemon is running. This will also cause messages to go to stdout instead of the log file. autoban will exit after running once.
 
 =item B<-h, --help>
 Print a brief help message and exits.

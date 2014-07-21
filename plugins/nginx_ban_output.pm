@@ -39,7 +39,7 @@ sub nginx_ban_output {
     my $nginxBanFileWritable=0;
 
 
-    outputHandler('DEBUG','nginx_ban_output',"looping through the ban ips");
+    autoban::Logging::OutputHandler('DEBUG','nginx_ban_output',"looping through the ban ips");
 
 
     #get current GMT date in format YYYYMMDDHHMM, as an int
@@ -52,7 +52,7 @@ sub nginx_ban_output {
     
     #check to see what inputs we are looking at
     foreach my $plugin ($autobanConfig->param('nginx-ban-output.plugins')){
-	outputHandler('DEBUG','nginx_ban_output',"looking at input plugin: $plugin");
+	autoban::Logging::OutputHandler('DEBUG','nginx_ban_output',"looking at input plugin: $plugin");
 
 	foreach my $ip (sort keys %{$data->{$plugin}->{'ipData'}}) {
 	    #strip the trailing comma from the string
@@ -63,7 +63,7 @@ sub nginx_ban_output {
 	    #if above threshold, see if we should ban it
 	    if ($data->{$plugin}->{'ipData'}->{$ip}->{'banScore'} >= $autobanConfig->param('nginx-ban-output.banTheshold')){
 		$banCount=1;
-		outputHandler('DEBUG','nginx_ban_output',"IP $ip is above ban threshold, checking ban status");
+		autoban::Logging::OutputHandler('DEBUG','nginx_ban_output',"IP $ip is above ban threshold, checking ban status");
 
 
 		# This is where the ban db will come into play. do a query to get all active nginx banned ips and generate ban file.
@@ -96,18 +96,18 @@ sub nginx_ban_output {
 				}
 		    }
 		    );
-		outputHandler('DEBUG','nginx_ban_output',"Search took $ipBanSearch->{'took'}ms");
+		autoban::Logging::OutputHandler('DEBUG','nginx_ban_output',"Search took $ipBanSearch->{'took'}ms");
 
 		#look at number of bans for the current ip
 		if ($ipBanSearch->{'hits'}->{'total'} == 0){
 
 		    if ($safe) {
-			outputHandler('INFO','nginx_ban_output',"The following would have been banned: IP: $ip COMMENT: $data->{$plugin}->{'ipData'}->{$ip}->{'banComment'}");
+			autoban::Logging::OutputHandler('INFO','nginx_ban_output',"The following would have been banned: IP: $ip COMMENT: $data->{$plugin}->{'ipData'}->{$ip}->{'banComment'}");
 
 		    }
 		    else{
 			#if the search returned no hits, then we need to create a new ban record
-			outputHandler('DEBUG','nginx_ban_output',"Found no active bans for $ip, adding one");
+			autoban::Logging::OutputHandler('DEBUG','nginx_ban_output',"Found no active bans for $ip, adding one");
 
 			#create ban since there one does not exist for this ip
 			my $ban_expires = $currentDateTime+$autobanConfig->param('nginx-ban-output.banLength');
@@ -126,11 +126,11 @@ sub nginx_ban_output {
 		    }
 		}
 		elsif ($ipBanSearch->{'hits'}->{'total'} == 1 ){
-		    outputHandler('DEBUG','nginx_ban_output',"Found one active ban for $ip");
+		    autoban::Logging::OutputHandler('DEBUG','nginx_ban_output',"Found one active ban for $ip");
 		    #we do nothing here since the ban is already active. 
 		}
 		else {
-		    outputHandler('WARN','nginx_ban_output',"Found multiple active bans for $ip, I am not sure what to do with this yet or how this would sanely happen...");
+		    autoban::Logging::OutputHandler('WARN','nginx_ban_output',"Found multiple active bans for $ip, I am not sure what to do with this yet or how this would sanely happen...");
 		    #TODO: figure out how to handle this 
 		}	    
 
@@ -140,7 +140,7 @@ sub nginx_ban_output {
 	
 
 	if ($banCount == 0){
-	   outputHandler('DEBUG','nginx_ban_output','I found nothing new to ban on this run');
+	   autoban::Logging::OutputHandler('DEBUG','nginx_ban_output','I found nothing new to ban on this run');
 	}	
 
 
@@ -148,12 +148,12 @@ sub nginx_ban_output {
 
 #if safe mode is in, no not generate ban file    
 if ($safe) {
-    outputHandler('DEBUG','nginx_ban_output','Not generating nginx ban file due to safe flag');
+    autoban::Logging::OutputHandler('DEBUG','nginx_ban_output','Not generating nginx ban file due to safe flag');
 }
 else{
 
     #run a facted search on active bans by ip. and sort for good measure. 
-    outputHandler('DEBUG','nginx_ban_output','Getting all active banned ips');
+    autoban::Logging::OutputHandler('DEBUG','nginx_ban_output','Getting all active banned ips');
 
     my $activeBanResult = $es->search(
 	index => $autobanConfig->param('autoban.esAutobanIndex'),
@@ -186,17 +186,17 @@ else{
 	#use size=0 to only give the faceted data
 	size => 0
 	);
-    outputHandler('DEBUG','nginx_ban_output',"Search took $activeBanResult->{'took'}ms, returned $activeBanResult->{'facets'}->{'ipFacet'}->{'total'} banned ips");
+    autoban::Logging::OutputHandler('DEBUG','nginx_ban_output',"Search took $activeBanResult->{'took'}ms, returned $activeBanResult->{'facets'}->{'ipFacet'}->{'total'} banned ips");
 
-    outputHandler('DEBUG','nginx_ban_output','Generating nginx ban file');
+    autoban::Logging::OutputHandler('DEBUG','nginx_ban_output','Generating nginx ban file');
 
 
     unless (-e $autobanConfig->param('nginx-ban-output.location')) {
-	outputHandler('INFO','nginx_ban_output',"nginx ban file ". $autobanConfig->param('nginx-ban-output.location') ." does not exist, attempting to create\n");
+	autoban::Logging::OutputHandler('INFO','nginx_ban_output',"nginx ban file ". $autobanConfig->param('nginx-ban-output.location') ." does not exist, attempting to create\n");
     }
 
     unless (open NGINXBANFILE, ">", $autobanConfig->param('nginx-ban-output.location')) {
-	outputHandler('ERROR','nginx_ban_output',"Cannot write to nginx ban file ". $autobanConfig->param('nginx-ban-output.location') . ": $!\n");
+	autoban::Logging::OutputHandler('ERROR','nginx_ban_output',"Cannot write to nginx ban file ". $autobanConfig->param('nginx-ban-output.location') . ": $!\n");
     }
     else {
 	
@@ -204,23 +204,23 @@ else{
 
 	foreach my $banedIps (@{$activeBanResult->{'facets'}->{'ipFacet'}->{'terms'}}) {
 	    next if $banedIps->{'term'} eq '-';
-	    outputHandler('DEBUG','nginx_ban_output',"Adding $banedIps->{'term'} to nginx ban file");
+	    autoban::Logging::OutputHandler('DEBUG','nginx_ban_output',"Adding $banedIps->{'term'} to nginx ban file");
 	    print NGINXBANFILE "deny $banedIps->{'term'};\n";
 	}
-	outputHandler('DEBUG','nginx_ban_output','finished writing to nginx ban file, closing file');
+	autoban::Logging::OutputHandler('DEBUG','nginx_ban_output','finished writing to nginx ban file, closing file');
 	close NGINXBANFILE;
 
 	#see if user provided a post run script and if so, run it. If not, then we just ignore this
 	unless ($autobanConfig->param("nginx-ban-output.postRunScript")) {
-	   outputHandler('DEBUG','nginx_ban_output','No post script provided, skipping');
+	   autoban::Logging::OutputHandler('DEBUG','nginx_ban_output','No post script provided, skipping');
 	}
 	else {
-	    outputHandler('DEBUG','nginx_ban_output','Post script provided, running it');
+	    autoban::Logging::OutputHandler('DEBUG','nginx_ban_output','Post script provided, running it');
 	    my $tmpPostScript = $autobanConfig->param('nginx-ban-output.postRunScript');
 	    my $postScript = `$tmpPostScript`;
 	    my $postScriptExit = $?;
 	    unless ( $postScriptExit == 0) { print "Error running post script " . $autobanConfig->param('nginx-ban-output.postRunScript') .": exit code: $postScriptExit. $postScript\n";}
-	    outputHandler('DEBUG','nginx_ban_output',"Post script output: $postScript");
+	    autoban::Logging::OutputHandler('DEBUG','nginx_ban_output',"Post script output: $postScript");
 	}
 
     }

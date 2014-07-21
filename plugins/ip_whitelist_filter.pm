@@ -30,12 +30,12 @@ sub ip_whitelist_filter {
     #go though each plugin
     foreach my $currentPlugin (keys %{$data}) {
 
-	outputHandler('INFO','ip_whitelist_filter',"Looking at plugin data for: $currentPlugin");
+	autoban::Logging::OutputHandler('INFO','ip_whitelist_filter',"Looking at plugin data for: $currentPlugin");
 
 	#look at each ip address in the current plugin
 	foreach my $currentIp (keys %{$data->{$currentPlugin}->{'ipData'}}) {
 
-	    outputHandler('DEBUG','ip_whitelist_filter',"Checking $currentIp");
+	    autoban::Logging::OutputHandler('DEBUG','ip_whitelist_filter',"Checking $currentIp");
 	    my $ipAddr = NetAddr::IP->new($currentIp);
 
 	    #check if current ip is in any whitelist subnet
@@ -45,7 +45,7 @@ sub ip_whitelist_filter {
 		if ($ipAddr->within($network)) {
 
 		    #ip is in whitelist, remove it from the current plugin's data set and move on to next ip
-		    outputHandler('INFO','ip_whitelist_filter',"$currentIp is in whitelist, removing from data set");
+		    autoban::Logging::OutputHandler('INFO','ip_whitelist_filter',"$currentIp is in whitelist, removing from data set");
 		    delete $data->{$currentPlugin}->{'ipData'}->{$currentIp};
 		    last;
 

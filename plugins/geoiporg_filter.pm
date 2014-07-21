@@ -31,12 +31,12 @@ sub geoiporg_filter {
     #go though each plugin
     foreach my $currentPlugin (keys %{$data}) {
 
-	outputHandler('INFO','geoiporg_filter',"Looking at plugin data for: $currentPlugin");
+	autoban::Logging::OutputHandler('INFO','geoiporg_filter',"Looking at plugin data for: $currentPlugin");
 
 	#look at each ip address in the current plugin
 	foreach my $currentIp (keys %{$data->{$currentPlugin}->{'ipData'}}) {
 
-	    outputHandler('DEBUG','geoiporg_filter',"Checking $currentIp");
+	    autoban::Logging::OutputHandler('DEBUG','geoiporg_filter',"Checking $currentIp");
 	    my $currentIpOrg = $gi->isp_by_addr($currentIp) || '-';
 
 	    #run through the array of whitelist names, if there is a match, REMOVE it from the data hash
@@ -44,7 +44,7 @@ sub geoiporg_filter {
 	    if ($currentIpOrg =~ /$tempdata/i)
 	    {
 		#ip is in whitelist, remove it from the current plugin's data set and move on to next ip
-		outputHandler('INFO','geoiporg_filter',"$currentIp is $currentIpOrg which is in whitelist, removing from data set");
+		autoban::Logging::OutputHandler('INFO','geoiporg_filter',"$currentIp is $currentIpOrg which is in whitelist, removing from data set");
 		delete $data->{$currentPlugin}->{'ipData'}->{$currentIp};
 	    }
 	}

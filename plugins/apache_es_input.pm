@@ -33,7 +33,7 @@ my $num_purges=0;
 
 sub apache_es_input {
 
-    outputHandler('DEBUG','apache_es_input','Searching for the highest requesting ips');
+    autoban::Logging::OutputHandler('DEBUG','apache_es_input','Searching for the highest requesting ips');
 
 
 
@@ -71,7 +71,7 @@ sub apache_es_input {
 	);
 
 
-    outputHandler('DEBUG','apache_es_input',"Search took $result->{'took'}ms");
+    autoban::Logging::OutputHandler('DEBUG','apache_es_input',"Search took $result->{'took'}ms");
 
 
 
@@ -91,13 +91,13 @@ sub apache_es_input {
 	    $num_purges = $facetedData->{'ip'}->{$autobanConfig->param("apache-es-input.internalComparison")};
 	}
 	else {
-	    outputHandler('INFO','apache_es_input','Looks like internal comparison has no data, using backup setting');
+	    autoban::Logging::OutputHandler('INFO','apache_es_input','Looks like internal comparison has no data, using backup setting');
 	    $num_purges = $autobanConfig->param("apache-es-input.internalComparisonBackupCount");
 	}
 
     }
     else {
-	outputHandler('DEBUG','apache_es_input','No internalComparison provided, skipping');
+	autoban::Logging::OutputHandler('DEBUG','apache_es_input','No internalComparison provided, skipping');
     }
 
     #get some data on these ips and their last x requests  
@@ -110,7 +110,7 @@ sub apache_es_input {
 sub gatherBasicIpInfoApache {
     #look at each ip found
 
-    outputHandler('DEBUG','apache_es_input','Looking at each of the highest requesting ips');
+    autoban::Logging::OutputHandler('DEBUG','apache_es_input','Looking at each of the highest requesting ips');
 
     foreach my $ip (sort keys %{$facetedData->{'ip'}}) {
         #make a hash key/val for the current ip
@@ -129,7 +129,7 @@ sub gatherBasicIpInfoApache {
 	
         $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'hitCount'} = $num_reqs;
         
-	outputHandler('DEBUG','apache_es_input',"Inspecting $ip");
+	autoban::Logging::OutputHandler('DEBUG','apache_es_input',"Inspecting $ip");
 
 	#temp vars
 	my ($isLoggedIn, $postMethodPercentage, $postPercentage, $badResponseCodePercent, $varyUserAgent, $hasCookie, $hasUserAgent);
@@ -170,7 +170,7 @@ sub gatherBasicIpInfoApache {
 
 
 
-	outputHandler('DEBUG','apache_es_input',"Search took $result2->{'took'}ms");
+	autoban::Logging::OutputHandler('DEBUG','apache_es_input',"Search took $result2->{'took'}ms");
 
 
 	#figure out how many results there are and if greater then maxNumOfResults
