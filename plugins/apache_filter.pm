@@ -36,7 +36,8 @@ sub apache_filter() {
 	if ($autobanConfig->param("apache-es-input.cookie")){
 	    if ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'hasCookie'} ne "true" ) {$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "No cookie ,"; $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $autobanConfig->param("apache-filter.lowPenality"))}
 	}
-	
+
+	unless ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'hasUserAgent'}) {$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'hasUserAgent'} = "";}
 	if ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'hasUserAgent'} ne "true" ) {$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "No useragent ,"; $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $autobanConfig->param("apache-filter.highPenality"))}
 	
 	#if ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'isLoggedIn'} ne "true" ) {$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "Not logged in ,"; $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'apache-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $autobanConfig->param("apache-filter.lowPenality"))}

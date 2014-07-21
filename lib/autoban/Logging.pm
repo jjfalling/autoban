@@ -1,6 +1,8 @@
 ########################################
 package autoban::Logging;
 ########################################
+#taks based around logging
+
 #use strict;
 use warnings;
 use feature "switch";
@@ -33,7 +35,10 @@ sub OutputHandler {
     my $logOutput = $_[2];
 
     given ($logType){
-	#I am using FATAL as a way to let other logging methods or tasks finish before we die
+   	when ('LOGCARP') {$autoban::autobanLog->logcarp("$moduleName: $logOutput")}  
+   	when ('LOGCLUCK') {$autoban::autobanLog->logcluck("$moduleName: $logOutput")}  
+   	when ('LOGCROAK') {$autoban::autobanLog->logcroak("$moduleName: $logOutput")}  
+   	when ('LOGCONFESS') {$autoban::autobanLog->logconfess("$moduleName: $logOutput")}  
    	when ('FATALDIE') {$autoban::autobanLog->logdie("$moduleName: $logOutput")}  
 	when ('FATAL') {$autoban::autobanLog->fatal("$moduleName: $logOutput")}  
 	when ('ERROR') {$autoban::autobanLog->error("$moduleName: $logOutput")}  
@@ -41,6 +46,7 @@ sub OutputHandler {
 	when ('INFO') {$autoban::autobanLog->info("$moduleName: $logOutput")}  
 	when ('DEBUG') {$autoban::autobanLog->debug("$moduleName: $logOutput")} 
 	when ('TRACE') {$autoban::autobanLog->trace("$moduleName: $logOutput")} 
+	when ('OFF') {$autoban::autobanLog->off("$moduleName: $logOutput")} 
 	default  {$autoban::autobanLog->logcluck("$moduleName: AUTOBAN INTERNAL ERROR: unknown logType passed to OutputHandler!")} 
     }
 }

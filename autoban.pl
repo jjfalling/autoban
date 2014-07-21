@@ -43,6 +43,7 @@ die "The Search::Elasticsearch module must be >= v1.11! You have v$Search::Elast
            
 use lib "$FindBin::Bin/lib"; 
 use autoban::Logging;
+use autoban::EsIndexMgmt;
 
 #if we get an interupt, run function to exit
 $SIG{INT} = \&interrupt;
@@ -117,8 +118,19 @@ $SIG{__DIE__} = sub {
             return;
         }
         $Log::Log4perl::caller_depth++;
-	autoban::Logging::OutputHandler('FATAL','autoban',"@_");
+	autoban::Logging::OutputHandler('LOGCONFESS','autoban',"UNHANDLED EXECPTION: @_");
         die @_; # Now terminate really
+    };
+
+#capture warn errors
+$SIG{__WARN__} = sub {
+        if($^S) {
+            # We're in an eval {} and don't want log
+            # this message but catch it later
+            return;
+        }
+        $Log::Log4perl::caller_depth++;
+	autoban::Logging::OutputHandler('LOGCLUCK','autoban',"UNHANDLED WARNING: @_");
     };
 
 unless ($foreground) {
@@ -132,7 +144,7 @@ unless ($foreground) {
 
 #Any output past this point should be handled by the logging system
 autoban::Logging::OutputHandler('INFO','autoban','');
-autoban::Logging::OutputHandler('INFO','autoban',"Starting autoban v.$autobanVersion, please wait...");
+autoban::Logging::OutputHandler('OFF','autoban',"Starting autoban v.$autobanVersion, please wait...");
 autoban::Logging::OutputHandler('INFO','autoban','');
 
 
@@ -170,7 +182,7 @@ our $es = Search::Elasticsearch->new(
 
 #ensure the autoban template exists and update it 
 autoban::Logging::OutputHandler('DEBUG','autoban','Updating autoban index template');
-updateAutobanTemplate();
+autoban::EsIndexMgmt::UpdateAutobanTemplate();
 autoban::Logging::OutputHandler('DEBUG','autoban','autoban template updated');
 
 
@@ -197,56 +209,10 @@ if ($foreground) {
 ########################################
 sub interrupt {
 ########################################
-    autoban::Logging::OutputHandler('ERROR','autoban','Received an interupt, shutting down....');
+    autoban::Logging::OutputHandler('OFF','autoban','Received an interupt, shutting down....');
     exit;
 }
 
-
-#sanity checks around the autoban index
-########################################
-sub checkAutobanIndex {
-########################################
-
-    #look through the plugin directories and load the plugins
-    autoban::Logging::OutputHandler('DEBUG','autoban','Checking that autoban index exists');
-
-    #ensure the autoban index exists, if not, throw a warning and create it, exit if we cannot
-    my $autobanIndexStatus;
-    eval {$autobanIndexStatus = $es->indices->exists(index => $autobanConfig->param('autoban.esAutobanIndex'));};
-    autoban::Logging::OutputHandler('FATALDIE','autoban',"Problem connecting to elasticsearch: $@") if $@;
-
-
-    #unless the autoban index exists, we create it
-    unless ($autobanIndexStatus) {
-	autoban::Logging::OutputHandler('WARN','autoban',"autboan's index was not found. This is normal if this is the first time running autoban, otherwise something deleted it!");
-	$es->indices->create(index=> $autobanConfig->param('autoban.esAutobanIndex'));
-	autoban::Logging::OutputHandler('FATALDIE','autoban',"ERROR: could not create autoban index: $@") if $@;
-	autoban::Logging::OutputHandler('DEBUG','autoban','autoban index created');
-
-    }else {
-	autoban::Logging::OutputHandler('DEBUG','autoban','autoban index exists');
-
-	#ensure the autoban index is open 
-	my $autobanIndexState;
-	eval {$autobanIndexState = $es->cluster->state(index => $autobanConfig->param('autoban.esAutobanIndex'), metric => 'metadata')};
-	autoban::Logging::OutputHandler('ERROR','autoban',"Problem connecting to elasticsearch: $@") if $@;
-
-	#if the index is not open, try to open it
-	if ( $autobanIndexState->{'metadata'}->{'indices'}->{$autobanConfig->param('autoban.esAutobanIndex')}->{'state'} ne 'open' ) {
-	    autoban::Logging::OutputHandler('WARN','autoban',"The autoban index is not open, attempting to open index");
-
-	    eval { $es->indices->open(index => $autobanConfig->param('autoban.esAutobanIndex'));};
-	    autoban::Logging::OutputHandler('FATALDIE','autoban',"Could not open autoban index: $@") if $@;
-	    autoban::Logging::OutputHandler('DEBUG','autoban','Opened autoban index');
-
-	}else {
-	    autoban::Logging::OutputHandler('DEBUG','autoban','autoban index is open');
-
-	}
-
-    }
-
-}
 
 
 #this is the main autoban function
@@ -257,7 +223,7 @@ sub mainSub {
     my $autobanTime = [gettimeofday];
 
     #run some sanity checks on the autoban index
-    checkAutobanIndex();
+    autoban::EsIndexMgmt::CheckAutobanIndex();
 
     #load and run plugins specified in config
     foreach my $runPlugin ($autobanConfig->param('autoban.runPlugins')) {
@@ -294,53 +260,6 @@ sub mainSub {
 }
 
 
-#this is the autoban index template
-########################################
-sub updateAutobanTemplate {
-########################################
-    
-    eval {
-	$es->indices->put_template(
-	    name => 'autoban',               
-	    body => {
-		template => $autobanConfig->param('autoban.esAutobanIndex'),
-		settings => {
-		    'index.analysis.analyzer.default.stopwords' => '_none_',
-		    'index.analysis.analyzer.default.type' => 'standard',
-		    'index.number_of_shards' => '3',
-		    'index.number_of_replicas' => '1'
-		},
-			'mappings' => {
-			    '_default_' => {
-				'dynamic_templates' => [ {
-				    'string_fields' => {
-					'mapping' => {
-					    'type' => 'multi_field',
-					    'fields' => {
-						'raw' => {
-						    'index' => 'not_analyzed',
-						    'ignore_above' => 256,
-						    'type' => 'string'
-						},
-							'{name}' => {
-							    'index' => 'analyzed',
-							    'omit_norms' => 'true',
-							    'type' => 'string'
-						    }
-					    }
-					},
-					'match' => '*',
-					'match_mapping_type' => 'string'
-				    }
-							 } ]
-			    }
-		    }
-	    }           
-	    );
-    };
-    autoban::Logging::OutputHandler('FATALDIE','autoban',"Problem connecting to elasticsearch: $@") if $@;
-
-}
 
 
 
