@@ -33,9 +33,8 @@ my $num_purges=0;
 
 sub apache_es_input {
 
+
     autoban::Logging::OutputHandler('DEBUG','apache_es_input','Searching for the highest requesting ips');
-
-
 
     my $result = $es->search(
 	index => $autobanConfig->param('autoban.logstashIndex'),
@@ -69,6 +68,50 @@ sub apache_es_input {
 	#use size=0 to only give the faceted data
 	size => 0
 	);
+
+    #commenting this out as numbers will be quoted, and when you send that that to es with the agg, it fails: https://github.com/elasticsearch/elasticsearch/issues/6893   maybe fixed in 1.4?
+    # my $result = $es->search(
+    # 	index => $autobanConfig->param('autoban.logstashIndex'),
+    # 	#use size=0 to only give the faceted data
+    # 	size => 0,
+    # 	body => {
+    # 	    aggs => {
+    # 		ipData => {
+    # 		    aggs => {
+    # 			ips => {
+    # 			    terms => {
+    # 				order => {
+    # 				    _count => 'desc'
+    # 				},
+    # 				size => $autobanConfig->param('apache-es-input.topIps'),
+    # 				field => $autobanConfig->param('apache-es-input.facetFeild')
+    # 			    }
+    # 			}
+    # 		    },
+    # 		    filter => {
+    # 			bool => {
+    # 			    must => [
+    # 				{
+    # 				    term => {
+    # 					_type => $autobanConfig->param('apache-es-input.logType')
+    # 				    }
+    # 				},
+    # 				{
+    # 				    range => {
+    # 					'@timestamp' => {
+    # 					    gte => $autobanConfig->param('apache-es-input.searchPeriod')
+    # 					}
+    # 				    }
+    # 				}
+    # 				]
+    # 			}
+    # 		    }
+    # 		}
+    # 	    }
+    # 	}
+    # 	);
+
+
 
 
     autoban::Logging::OutputHandler('DEBUG','apache_es_input',"Search took $result->{'took'}ms");

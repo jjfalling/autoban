@@ -21,8 +21,6 @@
 #****************************************************************************
 package autoban;
 
-use feature "switch";
-
 use strict;
 use warnings;
 

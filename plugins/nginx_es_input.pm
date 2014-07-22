@@ -69,6 +69,47 @@ sub nginx_es_input {
 	size => 0
 	);
 
+    #commenting this out as numbers will be quoted, and when you send that that to es with the agg, it fails: https://github.com/elasticsearch/elasticsearch/issues/6893   maybe fixed in 1.4?
+    # my $result = $es->search(
+    # 	index => $autobanConfig->param('autoban.logstashIndex'),
+    # 	#use size=0 to only give the faceted data
+    # 	size => 0,
+    # 	body => {
+    # 	    aggs => {
+    # 		ipData => {
+    # 		    aggs => {
+    # 			ips => {
+    # 			    terms => {
+    # 				order => {
+    # 				    _count => 'desc'
+    # 				},
+    # 				size => $autobanConfig->param('nginx-es-input.facetFeild'),
+    # 				field => $autobanConfig->param('nginx-es-input.facetFeild')
+    # 			    }
+    # 			}
+    # 		    },
+    # 		    filter => {
+    # 			bool => {
+    # 			    must => [
+    # 				{
+    # 				    term => {
+    # 					_type => $autobanConfig->param('nginx-es-input.logType')
+    # 				    }
+    # 				},
+    # 				{
+    # 				    range => {
+    # 					'@timestamp' => {
+    # 					    gte => $autobanConfig->param('nginx-es-input.searchPeriod')
+    # 					}
+    # 				    }
+    # 				}
+    # 				]
+    # 			}
+    # 		    }
+    # 		}
+    # 	    }
+    # 	}
+    # 	);
 
     autoban::Logging::OutputHandler('DEBUG','nginx_es_input',"Search took $result->{'took'}ms");
 
