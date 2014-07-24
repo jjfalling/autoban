@@ -220,8 +220,15 @@ sub mainSub {
     #setup timer for stats reasons
     my $autobanTime = [gettimeofday];
 
+    #check the cluster health, break out of the main loop if things are not healthy
+    unless ( autoban::EsIndexMgmt::CheckClusterHealth() eq 'ok'){
+      return;
+    }
+
+
     #run some sanity checks on the autoban index
     autoban::EsIndexMgmt::CheckAutobanIndex();
+
 
     #load and run plugins specified in config
     foreach my $runPlugin ($autobanConfig->param('autoban.runPlugins')) {

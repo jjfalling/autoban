@@ -3,9 +3,9 @@ package autoban::EsIndexMgmt;
 ########################################
 #Tasks based around the autoban index
 
-#use strict;
+use strict;
 use warnings;
-
+use Data::Dumper;
 
 #sanity checks around the autoban index
 ########################################
@@ -51,6 +51,47 @@ sub CheckAutobanIndex {
     }
 }
 
+
+#this checks the health of the cluster 
+########################################
+sub CheckClusterHealth {
+########################################
+
+    my $clusterHealth;
+    #skip the check if the user disabled it
+    unless ($autoban::autobanConfig->param('autoban.minEsClusterHealth') eq 'off') {
+
+	autoban::Logging::OutputHandler('DEBUG','autoban','Checking es cluster health');
+	eval {$clusterHealth = $autoban::es->cluster->health();};
+	autoban::Logging::OutputHandler('ERROR','autoban',"Problem connecting to elasticsearch: $@") if $@;
+	
+
+	if ($autoban::autobanConfig->param('autoban.minEsClusterHealth') eq 'green') {
+	    unless ($clusterHealth->{'status'} eq 'green') {
+		autoban::Logging::OutputHandler('ERROR','autoban',"elasticsearch cluster is $clusterHealth->{'status'}, waiting for it to be green");
+	    }else{
+		autoban::Logging::OutputHandler('DEBUG','autoban',"elasticsearch cluster is $clusterHealth->{'status'}");
+		return "ok";
+	    }
+	    
+	}
+	elsif ($autoban::autobanConfig->param('autoban.minEsClusterHealth') eq 'yellow') {
+	    unless (($clusterHealth->{'status'} eq 'green') || ($clusterHealth->{'status'} eq 'yellow' )) {
+		autoban::Logging::OutputHandler('ERROR','autoban',"elasticsearch cluster is $clusterHealth->{'status'}, waiting for it to be at least yellow");
+	    }else{
+		autoban::Logging::OutputHandler('DEBUG','autoban',"elasticsearch cluster is $clusterHealth->{'status'}");
+		return "ok";
+	    }
+	}
+	else {
+	    autoban::Logging::OutputHandler('FATAL','autoban',"Invalid minEsClusterHealth setting: ". $autoban::autobanConfig->param('autoban.minEsClusterHealth'));
+
+	}
+
+    }
+
+
+}
 
 
 #this is the autoban index template
