@@ -7,6 +7,8 @@ package autoban::Logging;
 use warnings;
 use feature "switch";
 
+#disable experimental warnings
+no if $] >= 5.018, warnings => "experimental";
 
 
 #this configures the root logger with what appender and log level we want
