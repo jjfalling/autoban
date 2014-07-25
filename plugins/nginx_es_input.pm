@@ -34,7 +34,7 @@ sub nginx_es_input {
 
     autoban::Logging::OutputHandler('INFO','nginx_es_input','Searching for the highest requesting ips');
 
-    #numbers must be be quoted. https://github.com/elasticsearch/elasticsearch/issues/6893
+    #numbers must not be quoted. https://github.com/elasticsearch/elasticsearch/issues/6893
     my $result = $es->search(
     	index => $autobanConfig->param('autoban.logstashIndex'),
     	#use size=0 to only give the aggregation data
