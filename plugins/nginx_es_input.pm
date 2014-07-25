@@ -23,7 +23,7 @@ use List::MoreUtils 'any';
 use warnings;
 #use strict;
 
-my $facetedData;
+my $aggregatedData;
 my $result2;
 my $curlOutput;
 my $curlExitCode;
@@ -34,99 +34,63 @@ sub nginx_es_input {
 
     autoban::Logging::OutputHandler('INFO','nginx_es_input','Searching for the highest requesting ips');
 
-
-
+    #numbers must be be quoted. https://github.com/elasticsearch/elasticsearch/issues/6893
     my $result = $es->search(
-       	index => $autobanConfig->param('autoban.logstashIndex'),
-	body  => {
-	    facets => {
-		ipFacet => {
-		    terms => {
-			field =>  $autobanConfig->param('nginx-es-input.facetFeild'),
-			size => $autobanConfig->param('nginx-es-input.topIps'),
-		    },
-		    facet_filter => {
-			and => [
-			    {
-				term => {
-				    _type => $autobanConfig->param('nginx-es-input.logType')
-				}
-			    },
-			    {
-				range => {
-				    '@timestamp' => {
-					gte =>  $autobanConfig->param('nginx-es-input.searchPeriod')
-				    }
-				}
-			    }
-			    ]
-		    }
-		}
-	    }
-
-	},
-	#use size=0 to only give the faceted data
-	size => 0
-	);
-
-    #commenting this out as numbers will be quoted, and when you send that that to es with the agg, it fails: https://github.com/elasticsearch/elasticsearch/issues/6893   maybe fixed in 1.4?
-    # my $result = $es->search(
-    # 	index => $autobanConfig->param('autoban.logstashIndex'),
-    # 	#use size=0 to only give the faceted data
-    # 	size => 0,
-    # 	body => {
-    # 	    aggs => {
-    # 		ipData => {
-    # 		    aggs => {
-    # 			ips => {
-    # 			    terms => {
-    # 				order => {
-    # 				    _count => 'desc'
-    # 				},
-    # 				size => $autobanConfig->param('nginx-es-input.facetFeild'),
-    # 				field => $autobanConfig->param('nginx-es-input.facetFeild')
-    # 			    }
-    # 			}
-    # 		    },
-    # 		    filter => {
-    # 			bool => {
-    # 			    must => [
-    # 				{
-    # 				    term => {
-    # 					_type => $autobanConfig->param('nginx-es-input.logType')
-    # 				    }
-    # 				},
-    # 				{
-    # 				    range => {
-    # 					'@timestamp' => {
-    # 					    gte => $autobanConfig->param('nginx-es-input.searchPeriod')
-    # 					}
-    # 				    }
-    # 				}
-    # 				]
-    # 			}
-    # 		    }
-    # 		}
-    # 	    }
-    # 	}
-    # 	);
+    	index => $autobanConfig->param('autoban.logstashIndex'),
+    	#use size=0 to only give the aggregation data
+    	size => 0,
+    	body => {
+    	    aggs => {
+    		ipData => {
+    		    aggs => {
+    			ips => {
+    			    terms => {
+    				order => {
+    				    _count => 'desc'
+    				},
+    				size => int($autobanConfig->param('nginx-es-input.topIps')),
+    				field => $autobanConfig->param('nginx-es-input.clientIpField')
+    			    }
+    			}
+    		    },
+    		    filter => {
+    			bool => {
+    			    must => [
+    				{
+    				    term => {
+    					_type => $autobanConfig->param('nginx-es-input.logType')
+    				    }
+    				},
+    				{
+    				    range => {
+    					'@timestamp' => {
+    					    gte => $autobanConfig->param('nginx-es-input.searchPeriod')
+    					}
+    				    }
+    				}
+    				]
+    			}
+    		    }
+    		}
+    	    }
+    	}
+    	);
 
     autoban::Logging::OutputHandler('DEBUG','nginx_es_input',"Search took $result->{'took'}ms");
 
-
-    #my (@bad, $facet);
-    foreach my $res (@{$result->{'facets'}->{'ipFacet'}->{'terms'}}) {
-	next if $res->{'term'} eq '-';
-	$facetedData->{'ip'}->{$res->{'term'}} = $res->{'count'};
-	my $ip = $res->{'term'};
+    #go through each returned ip and store it and the hit count
+    foreach my $res (@{$result->{'aggregations'}->{'ipData'}->{'ips'}->{'buckets'}}) {
+	next if $res->{'key'} eq '-';
+	$aggregatedData->{'ip'}->{$res->{'key'}} = $res->{'doc_count'};
+	my $ip = $res->{'key'};
 	$ip =~ s/\.(\d{1,3})$//;
     }
 
 
     if ($autobanConfig->param("nginx-es-input.internalComparison")){
 	#see if we have any data for the internalComparison, if not use internalComparisonBackupCount 
-	if ($facetedData->{'ip'}->{$autobanConfig->param("nginx-es-input.internalComparison")}) {
-	    $num_purges = $facetedData->{'ip'}->{$autobanConfig->param("nginx-es-input.internalComparison")};
+	if ($aggregatedData->{'ip'}->{$autobanConfig->param("nginx-es-input.internalComparison")}) {
+	    $num_purges = $aggregatedData->{'ip'}->{$autobanConfig->param("nginx-es-input.internalComparison")};
 	}
 	else {
 	    autoban::Logging::OutputHandler('INFO','nginx_es_input','Looks like internal comparison has no data, using backup setting');
@@ -150,10 +114,9 @@ sub gatherBasicIpInfo {
     #look at each ip found
 
     autoban::Logging::OutputHandler('DEBUG','nginx_es_input','Looking at each of the highest requesting ips');
-
-    foreach my $ip (sort keys %{$facetedData->{'ip'}}) {
+    foreach my $ip (sort keys %{$aggregatedData->{'ip'}}) {
         #make a hash key/val for the current ip
-        my $num_reqs = $facetedData->{'ip'}->{$ip};
+        my $num_reqs = $aggregatedData->{'ip'}->{$ip};
         
 
         #possible issue if there is not a min of an empty string in the config file for this option
@@ -202,7 +165,7 @@ sub gatherBasicIpInfo {
 		},
 			    query => {
 				match => { 
-				    $autobanConfig->param('nginx-es-input.facetFeild') => $ip
+				    $autobanConfig->param('nginx-es-input.clientIpField') => $ip
 				}
 
 			}

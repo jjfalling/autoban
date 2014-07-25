@@ -103,7 +103,6 @@ else {
 # Before we do anything else, try to get an exclusive lock
 my $lock = File::NFSLock->new($0, LOCK_EX|LOCK_NB); 
 
-
 #finish setting up logging
 Log::Log4perl::init("$autobanPath/conf/logging.cfg");
 our $autobanLog = Log::Log4perl->get_logger();
@@ -115,6 +114,14 @@ $SIG{__DIE__} = sub {
             # this message but catch it later
             return;
         }
+	#ensure we are not being called by log4perl, as we dont want to send the log back to it
+	my($callingPackage) = caller;
+        if($callingPackage eq 'Log::Log4perl::Logger') {
+            # We're in an eval {} and don't want log
+            # this message but catch it later
+            return;
+	}
+
         $Log::Log4perl::caller_depth++;
 	autoban::Logging::OutputHandler('LOGCONFESS','autoban',"UNHANDLED EXECPTION: @_");
         die @_; # Now terminate really
@@ -134,7 +141,7 @@ $SIG{__WARN__} = sub {
 unless ($foreground) {
 
     #we are not running in the foreground check if there is another copy of this program running and die if so
-    autoban::Logging::OutputHandler('FATALDIE', "autoban is already running and I will not run another demonized copy! To run autoban manually while the daemon is running, give the foreground flag. See help or the man page") unless $lock;
+    autoban::Logging::OutputHandler('FATALDIE', 'autoban', 'autoban is already running and I will not run another demonized copy! To run autoban manually while the daemon is running, give the foreground flag. See help or the man page.') unless $lock;
     
 }
 
