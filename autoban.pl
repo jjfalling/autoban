@@ -31,13 +31,14 @@ use Getopt::Long;
 use Fcntl qw(LOCK_EX LOCK_NB);
 use File::NFSLock;
 use Time::HiRes qw(usleep ualarm gettimeofday tv_interval);
-use Log::Log4perl qw(:easy);
+use Log::Log4perl;
 use FindBin;     
 
 #get offical elasticsearch module @ https://metacpan.org/pod/Search::Elasticsearch
 use Search::Elasticsearch;
-die "The Search::Elasticsearch module must be >= v1.11! You have v$Search::Elasticsearch::VERSION\n\n"
-    unless $Search::Elasticsearch::VERSION >= 1.11;
+#A recent version is required for some things we do
+die "FATAL: The Search::Elasticsearch module must be >= v1.14! You have v$Search::Elasticsearch::VERSION\n\n"
+    unless $Search::Elasticsearch::VERSION >= 1.14;
            
 use lib "$FindBin::Bin/lib"; 
 use autoban::Logging;
