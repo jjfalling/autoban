@@ -19,10 +19,12 @@
 #*   along with this program.  If not, see <http://www.gnu.org/licenses/>.  *
 #****************************************************************************
 
-use Geo::IP::PurePerl;
 use List::MoreUtils 'any';
 use warnings;
 #use strict;
+
+use Parallel::ForkManager;
+use Hash::Merge::Simple qw(merge);
 
 my $aggregatedData;
 my $result2;
@@ -117,9 +119,19 @@ sub apache_es_input {
 sub gatherBasicIpInfoApache {
     #look at each ip found
 
+    my $pm = Parallel::ForkManager->new($autobanConfig->param('apache-es-input.maxProcs'));
+
+    $pm->run_on_finish(sub{
+	my ($pid,$exit_code,$ident,$exit_signal,$core_dump,$retdat)=@_;
+	$data = merge( $data, $retdat );
+		       });
+
     autoban::Logging::OutputHandler('DEBUG','apache_es_input','Looking at each of the highest requesting ips');
 
     foreach my $ip (sort keys %{$aggregatedData->{'ip'}}) {
+	$pm->start and next; # do the fork
+
+	my $localData; 
         #make a hash key/val for the current ip
         my $num_reqs = $aggregatedData->{'ip'}->{$ip};
         
@@ -129,12 +141,12 @@ sub gatherBasicIpInfoApache {
 	    my $perc = $num_reqs / $num_purges;
 	    my $pretty_perc = sprintf("%.3f", $perc);
 	    $pretty_perc *= 100;
-	    $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'internalComparison'} = $pretty_perc;
+	    $localData->{'apache-es-input'}->{'ipData'}->{$ip}->{'internalComparison'} = $pretty_perc;
 
 	}
 
 	
-        $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'hitCount'} = $num_reqs;
+        $localData->{'apache-es-input'}->{'ipData'}->{$ip}->{'hitCount'} = $num_reqs;
         
 	autoban::Logging::OutputHandler('DEBUG','apache_es_input',"Inspecting $ip");
 
@@ -177,7 +189,7 @@ sub gatherBasicIpInfoApache {
 
 
 
-	autoban::Logging::OutputHandler('DEBUG','apache_es_input',"Search took $result2->{'took'}ms");
+	autoban::Logging::OutputHandler('DEBUG','apache_es_input',"Search for $ip took $result2->{'took'}ms");
 
 
 	#figure out how many results there are and if greater then maxNumOfResults
@@ -214,16 +226,20 @@ sub gatherBasicIpInfoApache {
 
 	#put final data into hash
 	if ($autobanConfig->param("apache-es-input.cookie")){
-	    $data->{'apache-es-input'}->{'ipData'}->{$ip}->{'hasCookie'} = $hasCookie ||  "false";
+	    $localData->{'apache-es-input'}->{'ipData'}->{$ip}->{'hasCookie'} = $hasCookie ||  "false";
 	}
 
-	$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'hasUserAgent'} = $hasUserAgent;
+	$localData->{'apache-es-input'}->{'ipData'}->{$ip}->{'hasUserAgent'} = $hasUserAgent;
 
-	$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'postMethodPercentage'} = getPercentageApache($autobanConfig->param('apache-es-input.maxNumOfResults'), "$postActionCount");
-	$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'badResponsePercentage'} = getPercentageApache($autobanConfig->param('apache-es-input.maxNumOfResults'), "$tempBadResponseCount");
-	$data->{'apache-es-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'} = getPercentageApache($autobanConfig->param('apache-es-input.maxNumOfResults'), "$writeUrlCount");
+	$localData->{'apache-es-input'}->{'ipData'}->{$ip}->{'postMethodPercentage'} = getPercentageApache($autobanConfig->param('apache-es-input.maxNumOfResults'), "$postActionCount");
+	$localData->{'apache-es-input'}->{'ipData'}->{$ip}->{'badResponsePercentage'} = getPercentageApache($autobanConfig->param('apache-es-input.maxNumOfResults'), "$tempBadResponseCount");
+	$localData->{'apache-es-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'} = getPercentageApache($autobanConfig->param('apache-es-input.maxNumOfResults'), "$writeUrlCount");
 
+	$pm->finish(0, $localData); # do the exit in the child process
     }
+
+    $pm->wait_all_children;
+
 }
 
 

@@ -88,8 +88,7 @@ our $autobanConfig = new Config::Simple(filename=>"$configFile"); #<-- this shou
 #check if config file exists, and if not exit
 unless (-e $configFile) {
     print "\nFATAL: $configFile was found! Please see the man page (--man)!\n";
-    exit 1;
-}
+    exit 1;}
 
 #set the log level via the flag or fall back to the config
 our $autobanLogLevel;
