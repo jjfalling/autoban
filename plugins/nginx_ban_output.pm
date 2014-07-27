@@ -69,7 +69,7 @@ sub nginx_ban_output {
     $pm->run_on_finish(sub{
 	my ($pid,$exit_code,$ident,$exit_signal,$core_dump,@retdata)=@_;
 
-
+return;
 	#look at number of bans for the current ip
 	if ($retdata[0][1] == 0){
 
@@ -116,11 +116,13 @@ sub nginx_ban_output {
 	    #strip the trailing comma from the string
 	    $comment = substr(($data->{$plugin}->{'ipData'}->{$ip}->{'banComment'}),0,-1);
 	    $comment = "AutoBan - Score: $data->{$plugin}->{'ipData'}->{$ip}->{'banScore'} Reason: " . "$comment";
+	    my $activeBanCount=0;
 
-	    $pm->start and next;
-	    
+
 	    #if above threshold, see if we should ban it
 	    if ($data->{$plugin}->{'ipData'}->{$ip}->{'banScore'} >= $autobanConfig->param('nginx-ban-output.banTheshold')){
+		$pm->start and next;
+
 		$banCount=1;
 		autoban::Logging::OutputHandler('DEBUG','nginx_ban_output',"IP $ip is above ban threshold, checking ban status");
 
@@ -154,15 +156,16 @@ sub nginx_ban_output {
 		    );
 		autoban::Logging::OutputHandler('DEBUG','nginx_ban_output',"Search for $ip took $ipBanSearch->{'took'}ms");
 
-	        my @tempArray = ("$ip", "$ipBanSearch->{'hits'}->{'total'}");
+		my @tempArray = ("$ip", "$ipBanSearch->{'hits'}->{'total'}");
 
 		#exit, returning ip and hit count
 		$pm->finish(0, \@tempArray);
-
 	    }
+
 	}
 
 	$pm->wait_all_children;
+
 	
 
 	if ($banCount == 0){
