@@ -81,9 +81,8 @@ sub apache_es_input {
     	);
 
 
-
-
-    autoban::Logging::OutputHandler('DEBUG','apache_es_input',"Search took $result->{'took'}ms");
+    my $foundIps = keys $result->{'aggregations'}->{'ipData'}->{'ips'}->{'buckets'};
+    autoban::Logging::OutputHandler('DEBUG','apache_es_input',"Search took $result->{'took'}ms, returned $foundIps ips");
 
     #go through each returned ip and store it and the hit count
     foreach my $res (@{$result->{'aggregations'}->{'ipData'}->{'ips'}->{'buckets'}}) {
