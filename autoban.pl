@@ -195,13 +195,13 @@ autoban::Logging::OutputHandler('DEBUG','autoban','autoban template updated');
 
 #if foreground flag given, run only once
 if ($foreground) {
-    mainSub();
+    main();
     exit 0;
 
 }else {
     #run forever (poor mans daemon for now)
     while (1) {
-	mainSub();
+	main();
 	sleep $autobanConfig->param('autoban.runInterval');
 
     }
@@ -223,7 +223,7 @@ sub interrupt {
 
 #this is the main autoban function
 ########################################
-sub mainSub {
+sub main {
 ########################################
     #setup timer for stats reasons
     my $autobanTime = [gettimeofday];

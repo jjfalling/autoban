@@ -21,7 +21,7 @@
 
 
 #this filter will REMOVE matched ips from all of the plugin data to keep them from being blocked. It does not remove active bans from the db.
-#this plugin should be the first filter to run after all inputs have finished. 
+#this plugin should be one of the first filter to run after all inputs have finished. 
 
 sub ip_whitelist_filter {
     use NetAddr::IP;
