@@ -206,6 +206,7 @@ sub nginx_ban_output {
     else{
 
 	#Trying to work around an occasional longish delay between indexing and the documents being searchable by refreshing the index manually. This MAY be a bad idea, I dont know yet...
+	autoban::Logging::OutputHandler('TRACE','nginx_ban_output','Refreshing of autoban index');
 	$es->indices->refresh(
 	    index => $autobanConfig->param('autoban.esAutobanIndex')
 	    );
