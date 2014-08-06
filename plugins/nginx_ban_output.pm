@@ -89,7 +89,7 @@ sub nginx_ban_output {
 	if ($retdata[0][1] == 0){
 
 	    if ($safe) {
-		autoban::Logging::OutputHandler('INFO','nginx_ban_output',"The following would have been banned: IP: $retdata[0][0] COMMENT: $comment");
+		autoban::Logging::OutputHandler('INFO','nginx_ban_output',"The following would have been banned: IP: $retdata[0][0] COMMENT: $retdata[0][2]");
 
 	    }
 	    else{
@@ -107,7 +107,7 @@ sub nginx_ban_output {
 			ip => $retdata[0][0],
 			ban_created => $currentDateTime,
 			ban_expires => $ban_expires,
-			ban_comment => $comment,
+			ban_comment => $retdata[0][2],
 			inputPlugin => $plugin
 		    }
 				});		
@@ -132,7 +132,7 @@ sub nginx_ban_output {
 	foreach my $ip (sort keys %{$data->{$plugin}->{'ipData'}}) {
 	    #strip the trailing comma from the string
 	    $comment = substr(($data->{$plugin}->{'ipData'}->{$ip}->{'banComment'}),0,-1);
-	    $comment = "AutoBan - Score: $data->{$plugin}->{'ipData'}->{$ip}->{'banScore'} Reason: " . "$comment";
+	    #$comment = "AutoBan - Score: $data->{$plugin}->{'ipData'}->{$ip}->{'banScore'} Reason: " . "$comment";
 	    my $activeBanCount=0;
 
 
@@ -173,7 +173,7 @@ sub nginx_ban_output {
 		    );
 		autoban::Logging::OutputHandler('DEBUG','nginx_ban_output',"Search for $ip took $ipBanSearch->{'took'}ms");
 
-		my @tempArray = ("$ip", "$ipBanSearch->{'hits'}->{'total'}");
+		my @tempArray = ("$ip", "$ipBanSearch->{'hits'}->{'total'}", "$comment");
 
 		#exit, returning ip and hit count
 		$pm->finish(0, \@tempArray);
