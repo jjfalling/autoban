@@ -108,7 +108,7 @@ sub nginx_ban_output {
 			ban_created => $currentDateTime,
 			ban_expires => $ban_expires,
 			ban_comment => $retdata[0][2],
-			inputPlugin => $plugin
+			inputPlugin => $retdata[0][3]
 		    }
 				});		
 	    }
@@ -173,7 +173,7 @@ sub nginx_ban_output {
 		    );
 		autoban::Logging::OutputHandler('DEBUG','nginx_ban_output',"Search for $ip took $ipBanSearch->{'took'}ms");
 
-		my @tempArray = ("$ip", "$ipBanSearch->{'hits'}->{'total'}", "$comment");
+		my @tempArray = ("$ip", "$ipBanSearch->{'hits'}->{'total'}", "$comment", "$plugin");
 
 		#exit, returning ip and hit count
 		$pm->finish(0, \@tempArray);
