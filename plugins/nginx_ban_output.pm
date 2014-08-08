@@ -280,9 +280,13 @@ sub nginx_ban_output {
 	    }
 	    else {
 		autoban::Logging::OutputHandler('DEBUG','nginx_ban_output','Post script provided, running it');
+		my $postPluginTimer = [gettimeofday];
 		my $tmpPostScript = $autobanConfig->param('nginx-ban-output.postRunScript');
 		my $postScript = `$tmpPostScript`;
 		my $postScriptExit = $?;
+		my $elapsedPostPluginTimer = tv_interval ($postPluginTimer);
+		autoban::Logging::OutputHandler('DEBUG','nginx_ban_output',"Post script took $elapsedPostPluginTimer seconds to run");
+
 		unless ( $postScriptExit == 0) { print "Error running post script " . $autobanConfig->param('nginx-ban-output.postRunScript') .": exit code: $postScriptExit. $postScript\n";}
 		autoban::Logging::OutputHandler('DEBUG','nginx_ban_output',"Post script output: $postScript");
 	    }
