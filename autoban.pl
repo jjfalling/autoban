@@ -68,11 +68,11 @@ my ($verbose, $debug);
 Getopt::Long::Configure('bundling');
 GetOptions
     ('h|help|?' => \$help, 
-     'man' => \$man,
-     "l|loglevel=s" => \$loglevel,
+     'm|man' => \$man,
+     'l|loglevel=s' => \$loglevel,
      'f|foreground' => \$foreground,
-     "v|version" => \$version,
-     "s|safe" => \$safe) or pod2usage(2);
+     'v|version' => \$version,
+     's|safe' => \$safe) or pod2usage(2);
 
 pod2usage(-verbose => 1) if $help;
 pod2usage(-verbose => 3, -exitval => 0) if $man;
@@ -316,7 +316,7 @@ Print a brief help message and exits.
 =item B<-l, --loglevel [log level]> 
 Specify logging level (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
 
-=item B<--man>
+=item B<-m, --man>
 Print the manual page.
 
 =item B<-s,--safe>
