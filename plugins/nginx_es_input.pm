@@ -41,8 +41,8 @@ sub nginx_es_input {
     #numbers must not be quoted. https://github.com/elasticsearch/elasticsearch/issues/6893
     my $result = $es->search(
     	index => $autobanConfig->param('autoban.logstashIndex'),
-    	#use size=0 to only give the aggregation data
-    	size => 0,
+    	#use search type count
+    	search_type => "count"
     	body => {
     	    aggs => {
     		ipData => {

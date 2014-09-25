@@ -216,8 +216,8 @@ sub nginx_ban_output {
 
 	my $activeBanResult = $es->search(
 	    index => $autobanConfig->param('autoban.esAutobanIndex'),
-	    #Use size=0 to only give the aggregation data
-	    size => 0,
+     	    #use search type count
+       	    search_type => "count",
 	    body => {
 		aggs => {
 		    ipData => {
