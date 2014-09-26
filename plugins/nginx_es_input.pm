@@ -42,7 +42,7 @@ sub nginx_es_input {
     my $result = $es->search(
     	index => $autobanConfig->param('autoban.logstashIndex'),
     	#use search type count
-    	search_type => "count"
+    	search_type => "count",
     	body => {
     	    aggs => {
     		ipData => {
