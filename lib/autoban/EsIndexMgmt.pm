@@ -112,7 +112,7 @@ sub UpdateAutobanTemplate {
 		},
 			'mappings' => {
 			    '_default_' => {
-                                _timestamp' => {
+                                '_timestamp' => {
                                  'enabled' => 'true',
                                 },
 				'dynamic_templates' => [ {
