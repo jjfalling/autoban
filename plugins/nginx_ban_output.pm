@@ -283,6 +283,7 @@ sub nginx_ban_output {
 		my $postPluginTimer = [gettimeofday];
 		my $tmpPostScript = $autobanConfig->param('nginx-ban-output.postRunScript');
 		my $postScript = `$tmpPostScript`;
+		$postScript ||= "";
 		my $postScriptExit = $?;
 		my $elapsedPostPluginTimer = tv_interval ($postPluginTimer);
 		autoban::Logging::OutputHandler('DEBUG','nginx_ban_output',"Post script took $elapsedPostPluginTimer seconds to run");
