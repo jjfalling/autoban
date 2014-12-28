@@ -208,18 +208,22 @@ sub gatherBasicIpInfo {
 	my $i=0;
 	while ($i < $total) {
 	    
+	    my $tmpVar; #seems that there is a problem using config object in regex, so push the current item into this var when needed
 	    #get data for each request out.         
 	    my $tempData = ($result2->{'hits'}->{'hits'}->[$i]);
 
 	    #TODO: make all of this happen in the config 
 	    if ($autobanConfig->param("nginx-es-input.cookie")){
-		if ($tempData->{'_source'}->{'cookies'} =~ /$autobanConfig->param('nginx-es-input.cookie')/i){$hasCookie = "true";}
+		$tmpVar = $autobanConfig->param('nginx-es-input.cookie');
+		if ($tempData->{'_source'}->{'cookies'} =~ /$tmpVar/i){$hasCookie = "true";}
 	    }
 
 	    if ($tempData->{'_source'}->{'http_user_agent'} ne "\"-\""){$hasUserAgent = "true";}
 	    if ($tempData->{'_source'}->{'request_method'} =~ /post/i){$postActionCount++;}
-	    if ($tempData->{'_source'}->{'status'} !~ /$autobanConfig->param('nginx-es-input.goodResponseCodes')/i){$tempBadResponseCount++;}
-	    if ($tempData->{'_source'}->{'requested_uri'} =~ /$autobanConfig->param('nginx-es-input.writeUrl')/i){$writeUrlCount++;}
+	    $tmpVar = $autobanConfig->param('nginx-es-input.goodResponseCodes');
+	    if ($tempData->{'_source'}->{'status'} !~ /$tmpVar/i){$tempBadResponseCount++;print "BADSTATUS: $tempData->{'_source'}->{'status'}";}
+	    $tmpVar = $autobanConfig->param('nginx-es-input.writeUrl');
+	    if ($tempData->{'_source'}->{'requested_uri'} =~ /$tmpVar/i){$writeUrlCount++; print "WRITEURL: $tempData->{'_source'}->{'requested_uri'} ";}
 	    
 	    $i++;
 	}

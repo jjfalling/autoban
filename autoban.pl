@@ -54,7 +54,7 @@ $SIG{HUP} = \&interrupt;
 my $autobanPath = "$FindBin::Bin";
 
 #Define config file
-my $configFile = "$autobanPath/conf/autoban.cfg";
+my $configFile = "$autobanPath/conf/autoban.ini";
 
 #define program version (major, minor, patch)
 my $autobanVersion = "0.1.0";

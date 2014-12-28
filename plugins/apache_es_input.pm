@@ -52,8 +52,8 @@ sub apache_es_input {
     				order => {
     				    _count => 'desc'
     				},
-    				size => int($autobanConfig->param('apache-es-input.topIps')),
-    				field => $autobanConfig->param('apache-es-input.clientIpField')
+					size => int($autobanConfig->param('apache-es-input.topIps')),
+					field => $autobanConfig->param('apache-es-input.clientIpField')
     			    }
     			}
     		    },
@@ -207,17 +207,21 @@ sub gatherBasicIpInfoApache {
 	my $i=0;
 	while ($i < $total) {
 	    
+	    my $tmpVar; #seems that there is a problem using config object in regex, so push the current item into this var when needed
 	    #get data for each request out.         
 	    my $tempData = ($result2->{'hits'}->{'hits'}->[$i]);
 
 	    if ($autobanConfig->param("apache-es-input.cookie")){
-		if ($tempData->{'_source'}->{'cookies'} =~ /$autobanConfig->param('apache-es-input.cookie')/i){$hasCookie = "true";}
+	        $tmpVar=$autobanConfig->param('apache-es-input.cookie');
+		if ($tempData->{'_source'}->{'cookies'} =~ /$tmpVar/i){$hasCookie = "true";}
 	    }
 
 	    if ($tempData->{'_source'}->{'agent'} ne "\"-\""){$hasUserAgent = "true";}
 	    if ($tempData->{'_source'}->{'verb'} =~ /post/i){$postActionCount++;}
-	    if ($tempData->{'_source'}->{'response'} !~ /$autobanConfig->param('apache-es-input.goodResponseCodes')/i){$tempBadResponseCount++;}
-	    if ($tempData->{'_source'}->{'request'} =~ /$autobanConfig->param('apache-es-input.writeUrl')/i){$writeUrlCount++;}
+	    $tmpVar=$autobanConfig->param('apache-es-input.goodResponseCodes');
+	    if ($tempData->{'_source'}->{'response'} !~ /$tmpVar/i){$tempBadResponseCount++;}
+	    $tmpVar=$autobanConfig->param('apache-es-input.writeUrl');
+	    if ($tempData->{'_source'}->{'request'} =~ /$tmpVar/i){$writeUrlCount++;}
 	    
 	    $i++;
 	    
