@@ -21,252 +21,238 @@
 
 use List::MoreUtils 'any';
 use warnings;
+
 #use strict;
 
 use Parallel::ForkManager;
 use Hash::Merge::Simple qw(merge);
 
-
 my $aggregatedData;
 my $result2;
 my $curlOutput;
 my $curlExitCode;
-my $num_purges=0;
-
+my $num_purges = 0;
 
 sub nginx_es_input {
 
-    autoban::Logging::OutputHandler('INFO','nginx_es_input','Searching for the highest requesting ips');
+    autoban::Logging::OutputHandler( 'INFO', 'nginx_es_input', 'Searching for the highest requesting ips' );
 
     #numbers must not be quoted. https://github.com/elasticsearch/elasticsearch/issues/6893
     my $result = $es->search(
-    	index => $autobanConfig->param('autoban.logstashIndex'),
-    	#use search type count
-    	search_type => "count",
-    	body => {
-    	    aggs => {
-    		ipData => {
-    		    aggs => {
-    			ips => {
-    			    terms => {
-    				order => {
-    				    _count => 'desc'
-    				},
-					size => int($autobanConfig->param('nginx-es-input.topIps')),
-					field => $autobanConfig->param('nginx-es-input.clientIpField')
-    			    }
-    			}
-    		    },
-    		    filter => {
-    			bool => {
-    			    must => [
-    				{
-    				    term => {
-    					_type => $autobanConfig->param('nginx-es-input.logType')
-    				    }
-    				},
-    				{
-    				    range => {
-    					'@timestamp' => {
-    					    gte => $autobanConfig->param('nginx-es-input.searchPeriod')
-    					}
-    				    }
-    				}
-    				]
-    			}
-    		    }
-    		}
-    	    }
-    	}
-    	);
+        index => $autobanConfig->param('autoban.logstashIndex'),
+
+        #use search type count
+        search_type => "count",
+        body        => {
+            aggs => {
+                ipData => {
+                    aggs => {
+                        ips => {
+                            terms => {
+                                order => {
+                                    _count => 'desc'
+                                },
+                                size  => int( $autobanConfig->param('nginx-es-input.topIps') ),
+                                field => $autobanConfig->param('nginx-es-input.clientIpField')
+                            }
+                        }
+                    },
+                    filter => {
+                        bool => {
+                            must => [
+                                {
+                                    term => {
+                                        _type => $autobanConfig->param('nginx-es-input.logType')
+                                    }
+                                },
+                                {
+                                    range => {
+                                        '@timestamp' => {
+                                            gte => $autobanConfig->param('nginx-es-input.searchPeriod')
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    );
 
     my $foundIps = keys $result->{'aggregations'}->{'ipData'}->{'ips'}->{'buckets'};
-    autoban::Logging::OutputHandler('DEBUG','nginx_es_input',"Search took $result->{'took'}ms, returned $foundIps ips");
+    autoban::Logging::OutputHandler( 'DEBUG', 'nginx_es_input', "Search took $result->{'took'}ms, returned $foundIps ips" );
 
     #go through each returned ip and store it and the hit count
-    foreach my $res (@{$result->{'aggregations'}->{'ipData'}->{'ips'}->{'buckets'}}) {
-	next if $res->{'key'} eq '-';
-	$aggregatedData->{'ip'}->{$res->{'key'}} = $res->{'doc_count'};
-	my $ip = $res->{'key'};
-	$ip =~ s/\.(\d{1,3})$//;
+    foreach my $res ( @{ $result->{'aggregations'}->{'ipData'}->{'ips'}->{'buckets'} } ) {
+        next if $res->{'key'} eq '-';
+        $aggregatedData->{'ip'}->{ $res->{'key'} } = $res->{'doc_count'};
+        my $ip = $res->{'key'};
+        $ip =~ s/\.(\d{1,3})$//;
     }
 
+    if ( $autobanConfig->param("nginx-es-input.internalComparison") ) {
 
-    if ($autobanConfig->param("nginx-es-input.internalComparison")){
-	#see if we have any data for the internalComparison, if not use internalComparisonBackupCount 
-	if ($aggregatedData->{'ip'}->{$autobanConfig->param("nginx-es-input.internalComparison")}) {
-	    $num_purges = $aggregatedData->{'ip'}->{$autobanConfig->param("nginx-es-input.internalComparison")};
-	}
-	else {
-	    autoban::Logging::OutputHandler('INFO','nginx_es_input','Looks like internal comparison has no data, using backup setting');
-	    $num_purges = $autobanConfig->param("nginx-es-input.internalComparisonBackupCount");
-	}
+        #see if we have any data for the internalComparison, if not use internalComparisonBackupCount
+        if ( $aggregatedData->{'ip'}->{ $autobanConfig->param("nginx-es-input.internalComparison") } ) {
+            $num_purges = $aggregatedData->{'ip'}->{ $autobanConfig->param("nginx-es-input.internalComparison") };
+        }
+        else {
+            autoban::Logging::OutputHandler( 'INFO', 'nginx_es_input', 'Looks like internal comparison has no data, using backup setting' );
+            $num_purges = $autobanConfig->param("nginx-es-input.internalComparisonBackupCount");
+        }
 
     }
     else {
-	autoban::Logging::OutputHandler('INFO','nginx_es_input','No internalComparison provided, skipping');
+        autoban::Logging::OutputHandler( 'INFO', 'nginx_es_input', 'No internalComparison provided, skipping' );
     }
 
-
-
-
-    
-    #get some data on these ips and their last x requests  
+    #get some data on these ips and their last x requests
     gatherBasicIpInfo();
 
 }
 
-
 sub gatherBasicIpInfo {
+
     #look at each ip found
 
-    my $pm = Parallel::ForkManager->new($autobanConfig->param('nginx-es-input.maxProcs'));
+    my $pm = Parallel::ForkManager->new( $autobanConfig->param('nginx-es-input.maxProcs') );
 
-    $pm->run_on_finish(sub{
-	my ($pid,$exit_code,$ident,$exit_signal,$core_dump,$retdat)=@_;
-	$data = merge( $data, $retdat );
-		       });
+    $pm->run_on_finish(
+        sub {
+            my ( $pid, $exit_code, $ident, $exit_signal, $core_dump, $retdat ) = @_;
+            $data = merge( $data, $retdat );
+        }
+    );
 
-    autoban::Logging::OutputHandler('DEBUG','nginx_es_input','Looking at each of the highest requesting ips');
-    foreach my $ip (sort keys %{$aggregatedData->{'ip'}}) {
+    autoban::Logging::OutputHandler( 'DEBUG', 'nginx_es_input', 'Looking at each of the highest requesting ips' );
+    foreach my $ip ( sort keys %{ $aggregatedData->{'ip'} } ) {
 
-	$pm->start and next; # do the fork
-	
-	my $localData; 
-	#make a hash key/val for the current ip
-	my $num_reqs = $aggregatedData->{'ip'}->{$ip};
-        
+        $pm->start and next;    # do the fork
+
+        my $localData;
+
+        #make a hash key/val for the current ip
+        my $num_reqs = $aggregatedData->{'ip'}->{$ip};
 
         #possible issue if there is not a min of an empty string in the config file for this option
-        if ($autobanConfig->param("nginx-es-input.internalComparison")){
-	    my $perc = $num_reqs / $num_purges;
-	    my $pretty_perc = sprintf("%.3f", $perc);
-	    $pretty_perc *= 100;
-	    $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'internalComparison'} = $pretty_perc;
-	}
+        if ( $autobanConfig->param("nginx-es-input.internalComparison") ) {
+            my $perc = $num_reqs / $num_purges;
+            my $pretty_perc = sprintf( "%.3f", $perc );
+            $pretty_perc *= 100;
+            $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'internalComparison'} = $pretty_perc;
+        }
 
-	
         $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'hitCount'} = $num_reqs;
-        
-	autoban::Logging::OutputHandler('DEBUG','nginx_es_input',"Inspecting $ip");
 
-	#temp vars
-	my ($isLoggedIn, $postMethodPercentage, $postPercentage, $badResponseCodePercent, $varyUserAgent, $hasCookie);
-	my $hasUserAgent = "false";
-	my $postActionCount = 0;
-	my $tempBadResponseCount = 0; 
-	my $writeUrlCount = 0;
+        autoban::Logging::OutputHandler( 'DEBUG', 'nginx_es_input', "Inspecting $ip" );
 
+        #temp vars
+        my ( $isLoggedIn, $postMethodPercentage, $postPercentage, $badResponseCodePercent, $varyUserAgent, $hasCookie );
+        my $hasUserAgent         = "false";
+        my $postActionCount      = 0;
+        my $tempBadResponseCount = 0;
+        my $writeUrlCount        = 0;
 
-	
+        my $result2 = $es->search(
+            index => $autobanConfig->param('autoban.logstashIndex'),
+            size  => $autobanConfig->param('nginx-es-input.maxNumOfResults'),
+            body  => {
+                filter => {
+                    and => [
+                        {
+                            term => {
+                                _type => $autobanConfig->param('nginx-es-input.logType')
+                            }
+                        },
+                        {
+                            range => {
+                                '@timestamp' => {
+                                    gte => $autobanConfig->param('nginx-es-input.searchPeriod')
+                                }
+                            }
+                        }
+                    ]
+                },
+                query => {
+                    match => {
+                        $autobanConfig->param('nginx-es-input.clientIpField') => $ip
+                      }
 
-	my $result2 = $es->search(
-	    index => $autobanConfig->param('autoban.logstashIndex'),
-	    size => $autobanConfig->param('nginx-es-input.maxNumOfResults'),
-	    body  => {
-		filter => {
-		    and => [
-			{
-			    term => {
-				_type => $autobanConfig->param('nginx-es-input.logType')
-			    }
-			},
-			{
-			    range => {
-				'@timestamp' => {
-				    gte => $autobanConfig->param('nginx-es-input.searchPeriod')
-				}
-			    }
-			}
-			]
-		},
-			    query => {
-				match => { 
-				    $autobanConfig->param('nginx-es-input.clientIpField') => $ip
-				}
+                }
+            }
+        );
 
-			}
-	    }
-	    );
+        autoban::Logging::OutputHandler( 'DEBUG', 'nginx_es_input', "Search for $ip took $result2->{'took'}ms" );
 
+        #figure out how many results there are and if greater then maxNumOfResults
+        my $total;
+        if ( $result2->{'hits'}->{'total'} >= $autobanConfig->param('nginx-es-input.maxNumOfResults') ) {
+            $total = $autobanConfig->param('nginx-es-input.maxNumOfResults');
+        }
+        else {
+            $total = $result2->{'hits'}->{'total'};
 
-	autoban::Logging::OutputHandler('DEBUG','nginx_es_input',"Search for $ip took $result2->{'took'}ms");
+        }
 
+        #TODO: add login support (look for item field of $name=$value)
+        #Look at each request for this ip
+        my $i = 0;
+        while ( $i < $total ) {
 
-	#figure out how many results there are and if greater then maxNumOfResults
-	my $total;
-	if ($result2->{'hits'}->{'total'} >= $autobanConfig->param('nginx-es-input.maxNumOfResults')) {
-	    $total = $autobanConfig->param('nginx-es-input.maxNumOfResults');
-	}
-	else {
-	    $total = $result2->{'hits'}->{'total'};
+            my $tmpVar;    #seems that there is a problem using config object in regex, so push the current item into this var when needed
+                           #get data for each request out.
+            my $tempData = ( $result2->{'hits'}->{'hits'}->[$i] );
 
-	}
+            #TODO: make all of this happen in the config
+            if ( $autobanConfig->param("nginx-es-input.cookie") ) {
+                $tmpVar = $autobanConfig->param('nginx-es-input.cookie');
+                if ( $tempData->{'_source'}->{'cookies'} =~ /$tmpVar/i ) { $hasCookie = "true"; }
+            }
 
-	#TODO: add login support (look for item field of $name=$value)
-	#Look at each request for this ip
-	my $i=0;
-	while ($i < $total) {
-	    
-	    my $tmpVar; #seems that there is a problem using config object in regex, so push the current item into this var when needed
-	    #get data for each request out.         
-	    my $tempData = ($result2->{'hits'}->{'hits'}->[$i]);
+            if ( $tempData->{'_source'}->{'http_user_agent'} ne "\"-\"" ) { $hasUserAgent = "true"; }
+            if ( $tempData->{'_source'}->{'request_method'} =~ /post/i ) { $postActionCount++; }
+            $tmpVar = $autobanConfig->param('nginx-es-input.goodResponseCodes');
+            if ( $tempData->{'_source'}->{'status'} !~ /$tmpVar/i ) { $tempBadResponseCount++; print "BADSTATUS: $tempData->{'_source'}->{'status'}"; }
+            $tmpVar = $autobanConfig->param('nginx-es-input.writeUrl');
+            if ( $tempData->{'_source'}->{'requested_uri'} =~ /$tmpVar/i ) { $writeUrlCount++; print "WRITEURL: $tempData->{'_source'}->{'requested_uri'} "; }
 
-	    #TODO: make all of this happen in the config 
-	    if ($autobanConfig->param("nginx-es-input.cookie")){
-		$tmpVar = $autobanConfig->param('nginx-es-input.cookie');
-		if ($tempData->{'_source'}->{'cookies'} =~ /$tmpVar/i){$hasCookie = "true";}
-	    }
+            $i++;
+        }
 
-	    if ($tempData->{'_source'}->{'http_user_agent'} ne "\"-\""){$hasUserAgent = "true";}
-	    if ($tempData->{'_source'}->{'request_method'} =~ /post/i){$postActionCount++;}
-	    $tmpVar = $autobanConfig->param('nginx-es-input.goodResponseCodes');
-	    if ($tempData->{'_source'}->{'status'} !~ /$tmpVar/i){$tempBadResponseCount++;print "BADSTATUS: $tempData->{'_source'}->{'status'}";}
-	    $tmpVar = $autobanConfig->param('nginx-es-input.writeUrl');
-	    if ($tempData->{'_source'}->{'requested_uri'} =~ /$tmpVar/i){$writeUrlCount++; print "WRITEURL: $tempData->{'_source'}->{'requested_uri'} ";}
-	    
-	    $i++;
-	}
+        #put final data into hash
+        if ( $autobanConfig->param("nginx-es-input.cookie") ) {
+            $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'hasCookie'} = $hasCookie || "false";
+        }
 
-	#put final data into hash
-	if ($autobanConfig->param("nginx-es-input.cookie")){
-	    $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'hasCookie'} = $hasCookie ||  "false";
-	}
+        $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'hasUserAgent'} = $hasUserAgent;
 
-	$localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'hasUserAgent'} = $hasUserAgent;
+        $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'postMethodPercentage'}  = getPercentage( $autobanConfig->param('nginx-es-input.maxNumOfResults'), "$postActionCount" );
+        $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'badResponsePercentage'} = getPercentage( $autobanConfig->param('nginx-es-input.maxNumOfResults'), "$tempBadResponseCount" );
+        $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'}    = getPercentage( $autobanConfig->param('nginx-es-input.maxNumOfResults'), "$writeUrlCount" );
 
-	$localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'postMethodPercentage'} = getPercentage($autobanConfig->param('nginx-es-input.maxNumOfResults'), "$postActionCount");
-	$localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'badResponsePercentage'} = getPercentage($autobanConfig->param('nginx-es-input.maxNumOfResults'), "$tempBadResponseCount");
-	$localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'} = getPercentage($autobanConfig->param('nginx-es-input.maxNumOfResults'), "$writeUrlCount");
-
-	$pm->finish(0, $localData); # do the exit in the child process
+        $pm->finish( 0, $localData );    # do the exit in the child process
 
     }
-
 
     $pm->wait_all_children;
 }
 
-
-
 sub getPercentage {
 
-    my ($first , $second) = (shift, shift);
-    if ($second == 0){
+    my ( $first, $second ) = ( shift, shift );
+    if ( $second == 0 ) {
         return 0;
-	
+
     }
     else {
         my $perc = $second / $first;
-        my $pretty_perc = sprintf("%.3f", $perc);
+        my $pretty_perc = sprintf( "%.3f", $perc );
         $pretty_perc *= 100;
         return $pretty_perc;
     }
 
 }
-
-
-
 
 #required to import
 1;
