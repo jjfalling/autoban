@@ -174,7 +174,7 @@ our $data;
 
 #when safemode is enabled, do not preform any actions. only gather data and report to the user.
 if ($safe) {
-    autoban::Logging::OutputHandler( 'INFO', 'autoban', 'Safe mode is enabled. No bans will be created' );
+    autoban::Logging::OutputHandler( 'WARN', 'autoban', 'Safe mode is enabled. No bans will be created' );
 }
 
 #create the shared es connection
