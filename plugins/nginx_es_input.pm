@@ -80,7 +80,7 @@ sub nginx_es_input {
         }
     );
 
-    my $foundIps = keys $result->{'aggregations'}->{'ipData'}->{'ips'}->{'buckets'};
+    my $foundIps = keys @{ $result->{'aggregations'}->{'ipData'}->{'ips'}->{'buckets'} };
     autoban::Logging::OutputHandler( 'DEBUG', 'nginx_es_input', "Search took $result->{'took'}ms, returned $foundIps ips" );
 
     #go through each returned ip and store it and the hit count
