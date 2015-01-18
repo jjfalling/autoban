@@ -117,6 +117,7 @@ sub gatherBasicIpInfo {
     #look at each ip found
 
     my $pm = Parallel::ForkManager->new( $autobanConfig->param('nginx-es-input.maxProcs') );
+    autoban::Logging::OutputHandler( 'TRACE', 'nginx_es_input', "Running with a max of " . $autobanConfig->param('nginx-es-input.maxProcs') . " procs" );
 
     $pm->run_on_finish(
         sub {
@@ -126,8 +127,8 @@ sub gatherBasicIpInfo {
     );
 
     autoban::Logging::OutputHandler( 'DEBUG', 'nginx_es_input', 'Looking at each of the highest requesting ips' );
-    foreach my $ip ( sort keys %{ $aggregatedData->{'ip'} } ) {
 
+    foreach my $ip ( sort keys %{ $aggregatedData->{'ip'} } ) {
         $pm->start and next;    # do the fork
 
         my $localData;
@@ -141,6 +142,8 @@ sub gatherBasicIpInfo {
             my $pretty_perc = sprintf( "%.3f", $perc );
             $pretty_perc *= 100;
             $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'internalComparison'} = $pretty_perc;
+            autoban::Logging::OutputHandler( 'TRACE', 'nginx_es_input', "$ip is $pretty_perc% of the traffic vs internal comparision" );
+
         }
 
         $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'hitCount'} = $num_reqs;
@@ -207,15 +210,15 @@ sub gatherBasicIpInfo {
             #TODO: make all of this happen in the config
             if ( $autobanConfig->param("nginx-es-input.cookie") ) {
                 $tmpVar = $autobanConfig->param('nginx-es-input.cookie');
-                if ( $tempData->{'_source'}->{'cookies'} =~ /$tmpVar/i ) { $hasCookie = "true"; }
+                if ( $tempData->{'_source'}->{'cookies'} =~ /$tmpVar/i ) { $hasCookie = "true"; autoban::Logging::OutputHandler( 'TRACE', 'nginx_es_input', "$ip has cookie(s): " . $tempData->{'_source'}->{'cookies'} ) }
             }
 
-            if ( $tempData->{'_source'}->{'http_user_agent'} ne "\"-\"" ) { $hasUserAgent = "true"; }
-            if ( $tempData->{'_source'}->{'request_method'} =~ /post/i ) { $postActionCount++; }
+            if ( $tempData->{'_source'}->{'http_user_agent'} ne "\"-\"" ) { $hasUserAgent = "true"; autoban::Logging::OutputHandler( 'TRACE', 'nginx_es_input', "$ip has useragent of " . $tempData->{'_source'}->{'http_user_agent'} ) }
+            if ( $tempData->{'_source'}->{'request_method'} =~ /post/i ) { $postActionCount++; autoban::Logging::OutputHandler( 'TRACE', 'nginx_es_input', "$ip preformed post" ); }
             $tmpVar = $autobanConfig->param('nginx-es-input.goodResponseCodes');
-            if ( $tempData->{'_source'}->{'status'} !~ /$tmpVar/i ) { $tempBadResponseCount++; print "BADSTATUS: $tempData->{'_source'}->{'status'}"; }
+            if ( $tempData->{'_source'}->{'status'} !~ /$tmpVar/i ) { $tempBadResponseCount++; autoban::Logging::OutputHandler( 'TRACE', 'nginx_es_input', "$ip bad status code: $tempData->{'_source'}->{'status'}" ); }
             $tmpVar = $autobanConfig->param('nginx-es-input.writeUrl');
-            if ( $tempData->{'_source'}->{'requested_uri'} =~ /$tmpVar/i ) { $writeUrlCount++; print "WRITEURL: $tempData->{'_source'}->{'requested_uri'} "; }
+            if ( $tempData->{'_source'}->{'requested_uri'} =~ /$tmpVar/i ) { $writeUrlCount++; autoban::Logging::OutputHandler( 'TRACE', 'nginx_es_input', "$ip write url: $tempData->{'_source'}->{'requested_uri'}" ); }
 
             $i++;
         }
@@ -223,13 +226,20 @@ sub gatherBasicIpInfo {
         #put final data into hash
         if ( $autobanConfig->param("nginx-es-input.cookie") ) {
             $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'hasCookie'} = $hasCookie || "false";
+            autoban::Logging::OutputHandler( 'TRACE', 'nginx_es_input', "$ip has cookie(s): " . $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'hasCookie'} );
         }
 
         $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'hasUserAgent'} = $hasUserAgent;
+        autoban::Logging::OutputHandler( 'TRACE', 'nginx_es_input', "$ip has useragnet: " . $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'hasUserAgent'} );
 
-        $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'postMethodPercentage'}  = getPercentage( $autobanConfig->param('nginx-es-input.maxNumOfResults'), "$postActionCount" );
+        $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'postMethodPercentage'} = getPercentage( $autobanConfig->param('nginx-es-input.maxNumOfResults'), "$postActionCount" );
+        autoban::Logging::OutputHandler( 'TRACE', 'nginx_es_input', "$ip post percentage: " . $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'postMethodPercentage'} . "%" );
+
         $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'badResponsePercentage'} = getPercentage( $autobanConfig->param('nginx-es-input.maxNumOfResults'), "$tempBadResponseCount" );
-        $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'}    = getPercentage( $autobanConfig->param('nginx-es-input.maxNumOfResults'), "$writeUrlCount" );
+        autoban::Logging::OutputHandler( 'TRACE', 'nginx_es_input', "$ip bad write percentage: " . $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'badResponsePercentage'} . "%" );
+
+        $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'} = getPercentage( $autobanConfig->param('nginx-es-input.maxNumOfResults'), "$writeUrlCount" );
+        autoban::Logging::OutputHandler( 'TRACE', 'nginx_es_input', "$ip write percentage: " . $localData->{'nginx-es-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'} . "%" );
 
         $pm->finish( 0, $localData );    # do the exit in the child process
 

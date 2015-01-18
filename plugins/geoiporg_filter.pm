@@ -46,6 +46,10 @@ sub geoiporg_filter {
                 autoban::Logging::OutputHandler( 'INFO', 'geoiporg_filter', "$currentIp is $currentIpOrg which is in whitelist, removing from data set" );
                 delete $data->{$currentPlugin}->{'ipData'}->{$currentIp};
             }
+            else {
+                autoban::Logging::OutputHandler( 'TRACE', 'geoiporg_filter', "$currentIp is $currentIpOrg is not whitelisted" );
+
+            }
         }
     }
 }

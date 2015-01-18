@@ -116,6 +116,7 @@ sub gatherBasicIpInfoApache {
     #look at each ip found
 
     my $pm = Parallel::ForkManager->new( $autobanConfig->param('apache-es-input.maxProcs') );
+    autoban::Logging::OutputHandler( 'TRACE', 'apache_es_input', "Running with a max of " . $autobanConfig->param('apache-es-input.maxProcs') . " procs" );
 
     $pm->run_on_finish(
         sub {
@@ -140,6 +141,7 @@ sub gatherBasicIpInfoApache {
             my $pretty_perc = sprintf( "%.3f", $perc );
             $pretty_perc *= 100;
             $localData->{'apache-es-input'}->{'ipData'}->{$ip}->{'internalComparison'} = $pretty_perc;
+            autoban::Logging::OutputHandler( 'TRACE', 'apache_es_input', "$ip is $pretty_perc% of the traffic vs internal comparision" );
 
         }
 
@@ -205,15 +207,18 @@ sub gatherBasicIpInfoApache {
 
             if ( $autobanConfig->param("apache-es-input.cookie") ) {
                 $tmpVar = $autobanConfig->param('apache-es-input.cookie');
-                if ( $tempData->{'_source'}->{'cookies'} =~ /$tmpVar/i ) { $hasCookie = "true"; }
+                if ( $tempData->{'_source'}->{'cookies'} =~ /$tmpVar/i ) {
+                    $hasCookie = "true";
+                    autoban::Logging::OutputHandler( 'TRACE', 'apache_es_input', "$ip has cookie(s): " . $tempData->{'_source'}->{'cookies'} );
+                }
             }
 
-            if ( $tempData->{'_source'}->{'agent'} ne "\"-\"" ) { $hasUserAgent = "true"; }
-            if ( $tempData->{'_source'}->{'verb'} =~ /post/i ) { $postActionCount++; }
+            if ( $tempData->{'_source'}->{'agent'} ne "\"-\"" ) { $hasUserAgent = "true"; autoban::Logging::OutputHandler( 'TRACE', 'apache_es_input', "$ip has useragent of " . $tempData->{'_source'}->{'agent'} ); }
+            if ( $tempData->{'_source'}->{'verb'} =~ /post/i ) { $postActionCount++; autoban::Logging::OutputHandler( 'TRACE', 'apache_es_input', "$ip preformed post" ); }
             $tmpVar = $autobanConfig->param('apache-es-input.goodResponseCodes');
-            if ( $tempData->{'_source'}->{'response'} !~ /$tmpVar/i ) { $tempBadResponseCount++; }
+            if ( $tempData->{'_source'}->{'response'} !~ /$tmpVar/i ) { $tempBadResponseCount++; autoban::Logging::OutputHandler( 'TRACE', 'apache_es_input', "$ip bad respone code: " . $tempData->{'_source'}->{'response'} ); }
             $tmpVar = $autobanConfig->param('apache-es-input.writeUrl');
-            if ( $tempData->{'_source'}->{'request'} =~ /$tmpVar/i ) { $writeUrlCount++; }
+            if ( $tempData->{'_source'}->{'request'} =~ /$tmpVar/i ) { $writeUrlCount++; autoban::Logging::OutputHandler( 'TRACE', 'apache_es_input', "$ip write url: $tempData->{'_source'}->{'request'}" ); }
 
             $i++;
 
@@ -222,13 +227,20 @@ sub gatherBasicIpInfoApache {
         #put final data into hash
         if ( $autobanConfig->param("apache-es-input.cookie") ) {
             $localData->{'apache-es-input'}->{'ipData'}->{$ip}->{'hasCookie'} = $hasCookie || "false";
+            autoban::Logging::OutputHandler( 'TRACE', 'apache_es_input', "$ip post percentage: " . $localData->{'apache-es-input'}->{'ipData'}->{$ip}->{'hasCookie'} );
         }
 
         $localData->{'apache-es-input'}->{'ipData'}->{$ip}->{'hasUserAgent'} = $hasUserAgent;
+        autoban::Logging::OutputHandler( 'TRACE', 'apache_es_input', "$ip post percentage: " . $localData->{'apache-es-input'}->{'ipData'}->{$ip}->{'hasUserAgent'} );
 
-        $localData->{'apache-es-input'}->{'ipData'}->{$ip}->{'postMethodPercentage'}  = getPercentageApache( $autobanConfig->param('apache-es-input.maxNumOfResults'), "$postActionCount" );
+        $localData->{'apache-es-input'}->{'ipData'}->{$ip}->{'postMethodPercentage'} = getPercentageApache( $autobanConfig->param('apache-es-input.maxNumOfResults'), "$postActionCount" );
+        autoban::Logging::OutputHandler( 'TRACE', 'apache_es_input', "$ip post percentage: " . $localData->{'apache-es-input'}->{'ipData'}->{$ip}->{'postMethodPercentage'} . "%" );
+
         $localData->{'apache-es-input'}->{'ipData'}->{$ip}->{'badResponsePercentage'} = getPercentageApache( $autobanConfig->param('apache-es-input.maxNumOfResults'), "$tempBadResponseCount" );
-        $localData->{'apache-es-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'}    = getPercentageApache( $autobanConfig->param('apache-es-input.maxNumOfResults'), "$writeUrlCount" );
+        autoban::Logging::OutputHandler( 'TRACE', 'apache_es_input', "$ip bad write percentage: " . $localData->{'apache-es-input'}->{'ipData'}->{$ip}->{'badResponsePercentage'} . "%" );
+
+        $localData->{'apache-es-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'} = getPercentageApache( $autobanConfig->param('apache-es-input.maxNumOfResults'), "$writeUrlCount" );
+        autoban::Logging::OutputHandler( 'TRACE', 'apache_es_input', "$ip write percentage: " . $localData->{'apache-es-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'} . "%" );
 
         $pm->finish( 0, $localData );    # do the exit in the child process
     }

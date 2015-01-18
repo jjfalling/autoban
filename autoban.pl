@@ -37,7 +37,7 @@ use FindBin;
 #get offical elasticsearch module @ https://metacpan.org/pod/Search::Elasticsearch
 use Search::Elasticsearch;
 
-#A recent version is required for some things we do
+#A some features depend on v1.14 or higher
 die "FATAL: The Search::Elasticsearch module must be >= v1.14! You have v$Search::Elasticsearch::VERSION\n\n"
   unless $Search::Elasticsearch::VERSION >= 1.14;
 
@@ -186,6 +186,9 @@ our $es = Search::Elasticsearch->new(
     #trace_to => 'Stderr',
 ) || $autobanLog->logdie("Cannot create new es instance: $es");
 
+#TODO:  need to handle es failures better. which more then likely means breaking all of this up into functions even further
+#autoban::Logging::OutputHandler( 'ERROR', 'autoban', "Cannot create new es instance: $es" );
+
 #ensure the autoban template exists and update it
 autoban::Logging::OutputHandler( 'DEBUG', 'autoban', 'Updating autoban index template' );
 autoban::EsIndexMgmt::UpdateAutobanTemplate();
@@ -195,14 +198,14 @@ autoban::Logging::OutputHandler( 'DEBUG', 'autoban', 'autoban template updated' 
 
 #if foreground flag given, run only once
 if ($foreground) {
-    main();
+    runAutoban();
     exit 0;
 
 }
 else {
     #run forever (poor mans daemon for now)
     while (1) {
-        main();
+        runAutoban();
         sleep $autobanConfig->param('autoban.runInterval');
 
     }
@@ -220,7 +223,7 @@ sub interrupt {
 
 #this is the main autoban function
 ########################################
-sub main {
+sub runAutoban {
 ########################################
     #setup timer for stats reasons
     my $autobanTime = [gettimeofday];

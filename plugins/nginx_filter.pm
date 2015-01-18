@@ -30,21 +30,41 @@ sub nginx_filter() {
         $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'}   = 0;
 
         if ( $autobanConfig->param("nginx-es-input.cookie") ) {
-            if ( $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'hasCookie'} ne "true" ) { $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "No cookie ,"; $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ( $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $autobanConfig->param("nginx-filter.lowPenality") ) }
+            if ( $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'hasCookie'} ne "true" ) {
+                $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "No cookie ,";
+                $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'}   = ( $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $autobanConfig->param("nginx-filter.lowPenality") );
+                autoban::Logging::OutputHandler( 'DEBUG', 'nginx_filter', "$ip has no cookie, adding " . $autobanConfig->param("nginx-filter.lowPenality") . ". score now " . $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} );
+            }
         }
 
-        if ( $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'hasUserAgent'} ne "true" ) { $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "No useragent ,"; $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ( $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $autobanConfig->param("nginx-filter.highPenality") ) }
+        if ( $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'hasUserAgent'} ne "true" ) {
+            $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "No useragent ,";
+            $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'}   = ( $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $autobanConfig->param("nginx-filter.highPenality") );
+            autoban::Logging::OutputHandler( 'DEBUG', 'nginx_filter', "$ip has no useragent, adding " . $autobanConfig->param("nginx-filter.highPenality") . ". score now " . $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} );
+        }
 
         #if ($data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'isLoggedIn'} ne "true" ) {$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "Not logged in ,"; $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ($data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $autobanConfig->param("nginx-filter.lowPenality"))}
 
-        if ( $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'badResponsePercentage'} > $autobanConfig->param("nginx-filter.badResponsePercentage") ) { $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "Bad to good response code ratio too high ,"; $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ( $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $autobanConfig->param("nginx-filter.highPenality") ) }
+        if ( $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'badResponsePercentage'} > $autobanConfig->param("nginx-filter.badResponsePercentage") ) {
+            $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "Bad to good response code ratio too high ,";
+            $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'}   = ( $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $autobanConfig->param("nginx-filter.highPenality") );
+            autoban::Logging::OutputHandler( 'DEBUG', 'nginx_filter', "$ip has high bad response percentage, adding " . $autobanConfig->param("nginx-filter.highPenality") . ". score now " . $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} );
+        }
 
         if ( $autobanConfig->param("nginx-es-input.writeUrl") ) {
-            if ( $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'} > $autobanConfig->param("nginx-filter.writeUrlPercentage") ) { $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "Write to read ratio too high ,"; $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ( $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $autobanConfig->param("nginx-filter.highPenality") ) }
+            if ( $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'writeUrlPercentage'} > $autobanConfig->param("nginx-filter.writeUrlPercentage") ) {
+                $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "Write to read ratio too high ,";
+                $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'}   = ( $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $autobanConfig->param("nginx-filter.highPenality") );
+                autoban::Logging::OutputHandler( 'DEBUG', 'nginx_filter', "$ip has high bad response percentage, adding " . $autobanConfig->param("nginx-filter.highPenality") . ". score now " . $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} );
+            }
         }
 
         if ( $autobanConfig->param("nginx-es-input.internalComparison") ) {
-            if ( $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'internalComparison'} > $autobanConfig->param("nginx-filter.internalComparison") ) { $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "Too many hits compared to internal comparison ,"; $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} = ( $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $autobanConfig->param("nginx-filter.lowPenality") ) }
+            if ( $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'internalComparison'} > $autobanConfig->param("nginx-filter.internalComparison") ) {
+                $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'} = "$data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'}" . "Too many hits compared to internal comparison ,";
+                $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'}   = ( $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} + $autobanConfig->param("nginx-filter.lowPenality") );
+                autoban::Logging::OutputHandler( 'DEBUG', 'nginx_filter', "$ip has high hit rate vs internal comparision, adding " . $autobanConfig->param("nginx-filter.lowPenality") . ". score now " . $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} );
+            }
         }
 
         $comment = substr( ( $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banComment'} ), 0, -1 );
@@ -58,7 +78,7 @@ sub nginx_filter() {
         }
         else {
             $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banFlag'} = "false";
-            autoban::Logging::OutputHandler( 'DEBUG', 'nginx_filter', "IP: $ip COMMENT: $comment " );
+            autoban::Logging::OutputHandler( 'DEBUG', 'nginx_filter', "IP: $ip not banned SCORE: $data->{'nginx-es-input'}->{'ipData'}->{$ip}->{'banScore'} COMMENT: $comment " );
 
         }
 
