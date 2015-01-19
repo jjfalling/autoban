@@ -47,6 +47,9 @@ sub nginx_ban_output {
     my $currentDateTime = sprintf( "%04d%02d%02d%02d%02d", $year, $mon, $mday, $hour, $min );
     $currentDateTime = int($currentDateTime);
 
+    #date_time format for ES to use for timestamp field (faking ms for now)
+    my $docTimestamp = sprintf( "%04d-%02d-%02dT%02d:%02d:%02d.000Z", $year, $mon, $mday, $hour, $min, $sec );
+
     my $banCount = 0;
 
     #setup es bulk helper
@@ -101,9 +104,6 @@ sub nginx_ban_output {
 
                     #create ban since there one does not exist for this ip
                     my $ban_expires = $currentDateTime + $autobanConfig->param('nginx-ban-output.banLength');
-
-		    #date_time_no_millis format for ES to use
-		    my $docTimestamp = strftime("%Y-%m-%dT%H:%M:%S", localtime);
 
                     $bulkEs->create(
                         {
