@@ -19,6 +19,8 @@
 #*   You should have received a copy of the GNU General Public License      *
 #*   along with this program.  If not, see <http://www.gnu.org/licenses/>.  *
 #****************************************************************************
+#set min perl version
+use 5.12.1;
 package autoban;
 
 use strict;
@@ -288,7 +290,7 @@ autoban [options]
 =head1 DESCRIPTION
 
 B<autoban> is used to analyze inputs, apply filters and push data to outputs
-If using a flag that sets an option that is also set in the config, the flag value will be used. 
+If using a flag that sets an option that is also set in the config, the flag value will be used.
 
 =head1 OPTIONS
 
@@ -302,7 +304,7 @@ Run in foreground. This will enable you to run autoban in the foreground, even i
 =item B<-h, --help>
 Print a brief help message and exits.
 
-=item B<-l, --loglevel [log level]> 
+=item B<-l, --loglevel [log level]>
 Specify logging level (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
 
 =item B<-m, --man>
@@ -311,14 +313,14 @@ Print the manual page.
 =item B<-s,--safe>
 Run in safe mode. This will not preform any bans, but instead display what would have happened. This is useful if you want to run this in read only mode. This will invoke info level logging
 
-=item B<-v, --version> 
-Display program version 
+=item B<-v, --version>
+Display program version
 
 
 =back
 
 =head1 CHANGELOG
 
-B<0.1.0> 12-10-2013 Initial release. All future releases until there is a stable product will be under this version. 
+B<0.1.0> 12-10-2013 Initial release. All future releases until there is a stable product will be under this version.
 
 =cut
