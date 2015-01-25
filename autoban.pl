@@ -176,14 +176,23 @@ if ($safe) {
     autoban::Logging::OutputHandler( 'WARN', 'autoban', 'Safe mode is enabled. No bans will be created' );
 }
 
-#create the shared es connection
-our $es = Search::Elasticsearch->new(
-    cxn_pool => $autobanConfig->param('autoban.cnx_pool'),
-    nodes    => [ $autobanConfig->param('autoban.esNodes') ],
+#create the shared es connection to the data cluster
+our $esMgmt = Search::Elasticsearch->new(
+    cxn_pool => $autobanConfig->param('autoban.cnx_poolMgmt'),
+    nodes    => $autobanConfig->param('autoban.esMgmtNodes'),
 
     #log_to   => 'Stderr',
     #trace_to => 'Stderr',
-) || $autobanLog->logdie("Cannot create new es instance: $es");
+) || $autobanLog->logdie("Cannot create new es instance to managment cluster: $esMgmt");
+
+#create the shared es connection to the logging cluster
+our $esLogging = Search::Elasticsearch->new(
+cxn_pool => $autobanConfig->param('autoban.cnx_poolLogging'),
+nodes    => $autobanConfig->param('autoban.esLoggingNodes'),
+
+    #log_to   => 'Stderr',
+    #trace_to => 'Stderr',
+) || $autobanLog->logdie("Cannot create new es instance to logging cluster: $esLogging");
 
 #TODO:  need to handle es failures better. which more then likely means breaking all of this up into functions even further
 #autoban::Logging::OutputHandler( 'ERROR', 'autoban', "Cannot create new es instance: $es" );

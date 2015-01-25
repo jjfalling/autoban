@@ -38,7 +38,7 @@ sub nginx_es_input {
     autoban::Logging::OutputHandler( 'INFO', 'nginx_es_input', 'Searching for the highest requesting ips' );
 
     #numbers must not be quoted. https://github.com/elasticsearch/elasticsearch/issues/6893
-    my $result = $es->search(
+    my $result = $esLogging->search(
         index => $autobanConfig->param('autoban.logstashIndex'),
 
         #use search type count
@@ -157,7 +157,7 @@ sub gatherBasicIpInfo {
         my $tempBadResponseCount = 0;
         my $writeUrlCount        = 0;
 
-        my $result2 = $es->search(
+        my $result2 = $esLogging->search(
             index => $autobanConfig->param('autoban.logstashIndex'),
             size  => $autobanConfig->param('nginx-es-input.maxNumOfResults'),
             body  => {
@@ -266,4 +266,3 @@ sub getPercentage {
 
 #required to import
 1;
-

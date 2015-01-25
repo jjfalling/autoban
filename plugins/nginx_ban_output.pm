@@ -53,7 +53,7 @@ sub nginx_ban_output {
     my $banCount = 0;
 
     #setup es bulk helper
-    my $bulkEs = $es->bulk_helper(
+    my $bulkEs = $esMgmt->bulk_helper(
         index     => $autobanConfig->param('autoban.esAutobanIndex'),
         type      => 'nginxBanOutput',
         max_count => $autobanConfig->param('nginx-ban-output.maxCount'),
@@ -153,7 +153,7 @@ sub nginx_ban_output {
                 autoban::Logging::OutputHandler( 'DEBUG', 'nginx_ban_output', "IP $ip is above ban threshold, checking ban status" );
 
                 #search for active bans
-                my $ipBanSearch = $es->search(
+                my $ipBanSearch = $esMgmt->search(
                     index => $autobanConfig->param('autoban.esAutobanIndex'),
                     body  => {
                         filter => {
@@ -214,12 +214,12 @@ sub nginx_ban_output {
 
         #Trying to work around an occasional longish delay between indexing and the documents being searchable by refreshing the index manually. This MAY be a bad idea, I dont know yet...
         autoban::Logging::OutputHandler( 'DEBUG', 'nginx_ban_output', 'Refreshing autoban index' );
-        $es->indices->refresh( index => $autobanConfig->param('autoban.esAutobanIndex') );
+        $esMgmt->indices->refresh( index => $autobanConfig->param('autoban.esAutobanIndex') );
 
         #Run a facted search on active bans by ip. and sort for good measure.
         autoban::Logging::OutputHandler( 'DEBUG', 'nginx_ban_output', 'Getting all active banned ips' );
 
-        my $activeBanResult = $es->search(
+        my $activeBanResult = $esMgmt->search(
             index => $autobanConfig->param('autoban.esAutobanIndex'),
 
             #use search type count
