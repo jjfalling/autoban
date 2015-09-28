@@ -109,6 +109,9 @@ sub CheckClusterHealth {
 
         }
 
+    } else {
+	  autoban::Logging::OutputHandler( 'DEBUG', 'autoban', 'Es cluster health disabled, skipping' );
+          return "ok";
     }
 
 }
