@@ -7,7 +7,7 @@
 Because the world needs more opensource DoS/DDoS mitigation and protection 
 
 
-NOTE: This project is currently pre-alpha and the code will drastically change and I more then likely will push broken code.
+NOTE: This project has stalled as I no longer have time to work on it and the existing code should be considered unstable.
 
 
 The original version of autoban was developed at one of the internet's largest websites in order to block abuse and attacks that caused downtime. This is an attempt to rewrite that project and opensource it. 
